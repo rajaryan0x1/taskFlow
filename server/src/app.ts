@@ -6,6 +6,7 @@ import { connectDB } from './config/db.js';
 import morgan from 'morgan';
 
 import mainRouter from './routes/index.js';
+import { errorHandler } from './middleware/error.middleware.js';
 
 const app = express()
 app.use(cors({
@@ -29,6 +30,7 @@ app.get("/health" , (req , res) => {
 
 
 
+app.use(errorHandler);
 
 
 
