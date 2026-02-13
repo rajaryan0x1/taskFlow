@@ -14,6 +14,8 @@ import {
     removeMember,
 } from "../controllers/project.controller.js";
 
+import analyticsRoutes from "./analytics.routes.js";
+
 const router = Router();
 
 
@@ -48,7 +50,7 @@ router.delete(
     deleteProject
 );
 
-// ─── Member management ────────────────────────────────────────────────────────
+//  Member management 
 
 // Invite a member (owner or admin)
 router.post(
@@ -68,4 +70,6 @@ router.delete(
     removeMember
 );
 
+// Added analytics routes (MongoDB aggregation pipelines) :)
+router.use("/:projectId/analytics", analyticsRoutes);
 export default router;
