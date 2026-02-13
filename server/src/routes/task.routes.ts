@@ -21,6 +21,9 @@ router.post("/", authMiddleware, createTask);
 
 export const projectTaskRoutes = Router({ mergeParams: true });
 
+// Changes made here 
+// router -> projectTaskRoutes
+
 projectTaskRoutes.get(
     "/",
     authMiddleware,
@@ -28,7 +31,7 @@ projectTaskRoutes.get(
     getTasksByProject
 );
 
-router.get(
+projectTaskRoutes.get(
     "/:taskId",
     authMiddleware,
     requireProjectAccess, // Need to pass projectId somehow to check access, maybe via query or middleware that fetches task and checks project access
@@ -37,7 +40,7 @@ router.get(
 
 
 
-router.patch(
+projectTaskRoutes.patch(
     "/:taskId",
     authMiddleware,
     requireProjectAccess,
@@ -46,7 +49,7 @@ router.patch(
 );
 
 
-router.delete(
+projectTaskRoutes.delete(
     "/:taskId",
     authMiddleware,
     requireProjectAccess,
@@ -55,7 +58,7 @@ router.delete(
 );
 
 
-router.patch(
+projectTaskRoutes.patch(
     "/:taskId/assign",
     authMiddleware,
     requireProjectAccess,

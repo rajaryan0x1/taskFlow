@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { env } from './config/env.js'
-import { connectDB } from './config/db.js';
+// import { connectDB } from './config/db.js';
 import morgan from 'morgan';
 
 import mainRouter from './routes/index.js';

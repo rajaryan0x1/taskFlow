@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import zod, { success } from "zod";
+import zod from "zod";
 import { Project } from "../models/Project.js";
 import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -51,6 +51,12 @@ export const createProject = asyncHandler(async (req: Request, res: Response): P
             },
         ],
     });
+    // missed to send the response earlier :(
+     res.status(201).json({
+        success: true,
+        message: "Project created successfully",
+        data: project,
+    });
 })
 
 // Get to api/v1/projects
@@ -66,9 +72,9 @@ export const getMyProjects = asyncHandler(async (req: Request, res: Response): P
         query.isArchived = false
     }
 
-    const projects = await Project.find(query).populate("owner", "firstName , lastName , email , username").populate("members.user", "firstName lastName email username").sort({ updatedAt: -1 });
+    const projects = await Project.find(query).populate("owner", "firstName  lastName email  username").populate("members.user", "firstName lastName email username").sort({ updatedAt: -1 });
 
-    res.send(200).json({
+    res.status(200).json({
         success: true,
         count: projects.length,
         data: projects
