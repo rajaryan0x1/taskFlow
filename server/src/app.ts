@@ -38,3 +38,4 @@ app.use(errorHandler);
 
 
 
+export default app; // kinda forgot about this line tbh :(

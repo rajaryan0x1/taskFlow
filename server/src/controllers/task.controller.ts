@@ -7,6 +7,7 @@ import { ProjectRole } from "../types/roles.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { Types } from "mongoose";
+import { broadcastTaskCreate, broadcastTaskDelete, broadcastTaskUpdate } from "../sockets/task.socket.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
@@ -111,6 +112,12 @@ export const createTask = asyncHandler(
             .populate("assignee", "firstName lastName email username")
             .populate("createdBy", "firstName lastName email username");
 
+
+        const io = req.app.locals.io;
+        if (io) {
+            broadcastTaskCreate(io, projectId, populatedTask);
+        }
+
         res.status(201).json({
             success: true,
             message: "Task created successfully",
@@ -154,7 +161,7 @@ export const getTasksByProject = asyncHandler(
 export const getTaskById = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
         const { taskId } = req.params;
-        if(!taskId || typeof taskId !== "string") {
+        if (!taskId || typeof taskId !== "string") {
             throw ApiError.badRequest("Task ID is required");
         }
         if (!Types.ObjectId.isValid(taskId)) {
@@ -189,7 +196,7 @@ export const getTaskById = asyncHandler(
 export const updateTask = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
         const { taskId } = req.params;
-        if(!taskId || typeof taskId !== "string") {
+        if (!taskId || typeof taskId !== "string") {
             throw ApiError.badRequest("Task ID is required");
         }
 
@@ -272,8 +279,17 @@ export const updateTask = asyncHandler(
             .populate("assignee", "firstName lastName email username")
             .populate("createdBy", "firstName lastName email username");
 
-        // TODO: Socket.io broadcast here when status changes
+        // TODO: Socket.io broadcast here when status changes [DONE]
         // if (updates.status) { io.to(projectId).emit("task:updated", updatedTask) }
+
+        const io = req.app.locals.io;
+        if (io) {
+            broadcastTaskUpdate(
+                io,
+                req.projectMembership!.project._id.toString(),
+                updatedTask
+            );
+        }
 
         res.status(200).json({
             success: true,
@@ -288,7 +304,7 @@ export const deleteTask = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
         const { taskId } = req.params;
         const hardDelete = req.query.hard === "true";
-        if(!taskId || typeof taskId !== "string") {
+        if (!taskId || typeof taskId !== "string") {
             throw ApiError.badRequest("Task ID is required");
         }
 
@@ -320,6 +336,15 @@ export const deleteTask = asyncHandler(
             task.isArchived = true;
             await task.save();
 
+            const io = req.app.locals.io;
+            if (io) {
+                broadcastTaskDelete(
+                    io,
+                    req.projectMembership!.project._id.toString(),
+                    taskId
+                );
+            }
+
             res.status(200).json({
                 success: true,
                 message: "Task archived successfully",
@@ -333,7 +358,7 @@ export const deleteTask = asyncHandler(
 export const assignTask = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
         const { taskId } = req.params;
-        if(!taskId || typeof taskId !== "string") {
+        if (!taskId || typeof taskId !== "string") {
             throw ApiError.badRequest("Task ID is required");
         }
 
