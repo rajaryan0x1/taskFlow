@@ -10,7 +10,7 @@ A real-time collaborative project management application built with the MERN sta
 - **Task Management** — Full CRUD on tasks with status, priority, assignee, and due dates
 - **Real-Time Updates** — Socket.io broadcasts task changes to all project members instantly
 - **Kanban Board** — Visual task board with Todo, In Progress, and Done columns
-- **Team Collaboration** — Invite members, assign tasks, and track progress
+- **Team Collaboration** — Invite members via type-ahead user search, assign roles, and remove members with role-based permissions
 - **Analytics Dashboard** — Interactive project analytics powered by MongoDB aggregation pipelines: overview cards, status breakdown with stacked progress bar, 30-day activity timeline bar chart, team performance table with per-member completion rates, and tasks-per-member distribution
 
 ## Tech Stack
@@ -47,7 +47,7 @@ taskflow/
 ├── client/                   # React frontend
 │   ├── src/
 │   │   ├── api/              # Axios instance & React Query client
-│   │   ├── components/       # Reusable UI components (TaskEditModal, AnalyticsDashboard)
+│   │   ├── components/       # Reusable UI components (TaskEditModal, AnalyticsDashboard, MembersPanel)
 │   │   ├── hooks/            # Custom React hooks (useAnalytics)
 │   │   ├── pages/            # Route-level page components
 │   │   ├── socket/           # Socket.io client setup
@@ -149,6 +149,11 @@ The client runs on `http://localhost:5173` by default and proxies API requests t
 | DELETE | `/api/v1/projects/:projectId/tasks/:taskId` | Archive/delete a task |
 | PATCH | `/api/v1/projects/:projectId/tasks/:taskId/assign` | Assign/unassign a task |
 
+### Users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/v1/users/search?q=...` | Search users by name, username, or email |
+
 ### Analytics
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -181,6 +186,14 @@ The project page has a **Board / Analytics** tab toggle. The Analytics view rend
 | **Tasks per Member** | Horizontal bar chart showing task distribution across contributors | `progress` |
 
 All data is fetched via React Query hooks (`useProjectProgress`, `useUserPerformance`, `useTimeline`) with automatic caching and background refetching.
+
+## Member Management
+
+The project page includes a **Members** tab (alongside Board and Analytics) with full member management:
+
+- **Invite** — Debounced type-ahead search against `GET /api/v1/users/search`. Results exclude existing members. Click a user to invite them with a selectable role (Member or Admin).
+- **Members list** — Displays all project members with avatar initials, name, email, and color-coded role badges (Owner / Admin / Member).
+- **Remove** — Owners and Admins can remove non-owner members via an inline button with a confirmation dialog. The owner cannot be removed.
 
 ## Roles & Permissions
 

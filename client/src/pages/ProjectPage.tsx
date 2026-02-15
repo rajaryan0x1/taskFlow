@@ -6,6 +6,8 @@ import { queryClient } from "../api/queryClient";
 import { initSocket, joinProject, leaveProject } from "../socket/socket";
 import TaskEditModal from "../components/TaskEditModal";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
+import MembersPanel from "../components/MembersPanel";
+import { useAuthStore } from "../stores/authStore";
 
 interface Task {
     _id: string;
@@ -54,7 +56,7 @@ const ProjectPage = () => {
     const [taskDescription, setTaskDescription] = useState("");
     const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">("medium");
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [activeTab, setActiveTab] = useState<"board" | "analytics">("board");
+    const [activeTab, setActiveTab] = useState<"board" | "analytics" | "members">("board");
 
     const { data: project } = useQuery({
         queryKey: ["project", projectId],
@@ -236,6 +238,16 @@ const ProjectPage = () => {
                                 >
                                     Analytics
                                 </button>
+                                <button
+                                    onClick={() => setActiveTab("members")}
+                                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                        activeTab === "members"
+                                            ? "bg-white text-gray-900 shadow-sm"
+                                            : "text-gray-500 hover:text-gray-700"
+                                    }`}
+                                >
+                                    Members
+                                </button>
                             </div>
                             {activeTab === "board" && (
                                 <button
@@ -266,6 +278,16 @@ const ProjectPage = () => {
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === "analytics" ? (
                     <AnalyticsDashboard projectId={projectId!} />
+                ) : activeTab === "members" && project ? (
+                    <MembersPanel
+                        projectId={projectId!}
+                        members={project.members}
+                        currentUserRole={
+                            project.members.find(
+                                (m) => m.user._id === useAuthStore.getState().user?.id
+                            )?.role ?? "member"
+                        }
+                    />
                 ) : isLoading ? (
                     <div className="flex items-center justify-center h-64">
                         <div className="text-gray-500">Loading tasks...</div>
