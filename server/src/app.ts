@@ -11,12 +11,11 @@ import { errorHandler } from './middleware/error.middleware.js';
 const app = express()
 app.use(cors({
     origin : "*",
-    credentials : true
 }))
 app.use(helmet())
 app.use(express.json()) 
 
-if(env.NODE_ENV === "production"){
+if(env.NODE_ENV === "development"){
     app.use(morgan("dev"))
 }
 

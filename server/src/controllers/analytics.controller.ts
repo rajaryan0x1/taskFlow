@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import { Task, TaskStatus } from "../models/Task.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { Types } from "mongoose";
-import { string } from "zod";
 
 
 
@@ -30,7 +29,7 @@ export const getProjectProgress = asyncHandler(async (req: Request, res: Respons
 
     const tasksByStatus: Record<string, number> = {
         todo: 0,
-        inProgress: 0,
+        in_progress: 0,
         done: 0,
     }
 

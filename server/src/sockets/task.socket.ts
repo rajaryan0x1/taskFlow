@@ -61,9 +61,12 @@ export const initializeSocket = (httpServer: HTTPServer): SocketIOServer => {
         console.log(`[socket.io] User connected: ${socket.data.userId}`);
 
         socket.on("project:join", (projectId: string) => {
-            const roomName = `project_${projectId}`;
+            const roomName = `project:${projectId}`;
+            console.log(`[socket.io] RECEIVED project:join event with projectId: ${projectId}`)
             socket.join(roomName);
             console.log(`[socket.io] User ${socket.data.userId} joined room: ${roomName}`);
+            const socketsInRoom = io.sockets.adapter.rooms.get(roomName);
+             console.log(`[socket.io] Room ${roomName} now has ${socketsInRoom?.size || 0} socket(s)`);
 
             socket.to(roomName).emit("user:joined", {
                 userId: socket.data.userId,
@@ -118,7 +121,7 @@ export const broadcastTaskUpdate = (
     projectId: string,
     task: any
 ): void => {
-    const roomName = `project_${projectId}`;
+    const roomName = `project:${projectId}`;
     io.to(roomName).emit("task:updated", task);
     console.log(`[socket.io] Broadcasted task:updated to room ${roomName}`);
 }
@@ -130,7 +133,9 @@ export const broadcastTaskCreate = (
     projectId: string,
     task: any
 ): void => {
-    const roomName = `project_${projectId}`;
+    const roomName = `project:${projectId}`;
+    const socketsInRoom = io.sockets.adapter.rooms.get(roomName);
+    console.log(`[socket.io] Broadcasting task:created to ${roomName}, room has ${socketsInRoom?.size || 0} sockets`);
     io.to(roomName).emit("task:created", task);
     console.log(`[socket.io] Broadcasted task:created to room ${roomName}`);
 }
@@ -140,7 +145,7 @@ export const broadcastTaskDelete = (
     projectId: string,
     taskId: string
 ): void => {
-    const roomName = `project_${projectId}`;
+    const roomName = `project:${projectId}`;
     io.to(roomName).emit("task:deleted", { taskId });
     console.log(`[socket.io] Broadcasted task:deleted to room ${roomName}`);
 }

@@ -114,6 +114,7 @@ export const createTask = asyncHandler(
 
 
         const io = req.app.locals.io;
+        console.log("[Debug message ] " , !!io)
         if (io) {
             broadcastTaskCreate(io, projectId, populatedTask);
         }
