@@ -228,4 +228,4 @@ npm run lint     # Run ESLint
 
 ## License
 
-ISC
+MIT
