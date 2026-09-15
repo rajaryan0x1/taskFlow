@@ -21,7 +21,7 @@ const updateProjectSchema = zod.object({
 
 const inviteMemberSchema = zod.object({
     userId: zod.string().min(1, "User ID is required"),
-    role: zod.enum([ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.MEMBER]).default(ProjectRole.MEMBER)
+    role: zod.enum([ProjectRole.ADMIN, ProjectRole.MEMBER]).default(ProjectRole.MEMBER)
 })
 
 // Controllers
@@ -188,10 +188,7 @@ export const inviteMember = asyncHandler(
       throw ApiError.badRequest("User is already a member of this project");
     }
 
-    // Only owner can invite other owners
-    if (role === ProjectRole.OWNER && req.projectMembership!.role !== ProjectRole.OWNER) {
-      throw ApiError.forbidden("Only the owner can invite another owner");
-    }
+    // Remove the broken owner-invite path: ownership is now transferred explicitly.
 
     // Add member
     project.members.push({
@@ -245,6 +242,56 @@ export const removeMember = asyncHandler(
       success: true,
       message: "Member removed successfully",
       data: project,
+    });
+  }
+);
+
+export const transferOwnership = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { newOwnerId } = req.body as { newOwnerId?: string };
+
+    if (!newOwnerId || typeof newOwnerId !== "string") {
+      throw ApiError.badRequest("newOwnerId is required");
+    }
+
+    const project = req.projectMembership!.project;
+
+    if (project.owner.toString() === newOwnerId) {
+      throw ApiError.badRequest("The selected user is already the owner");
+    }
+
+    const currentOwnerIndex = project.members.findIndex(
+      (member) => member.user.toString() === project.owner.toString()
+    );
+    const newOwnerIndex = project.members.findIndex(
+      (member) => member.user.toString() === newOwnerId
+    );
+
+    if (currentOwnerIndex === -1 || newOwnerIndex === -1) {
+      throw ApiError.badRequest("The new owner must be an existing project member");
+    }
+
+    const currentOwnerMember = project.members[currentOwnerIndex];
+    const newOwnerMember = project.members[newOwnerIndex];
+
+    if (!currentOwnerMember || !newOwnerMember) {
+      throw ApiError.badRequest("The ownership transfer could not be completed");
+    }
+
+    currentOwnerMember.role = ProjectRole.ADMIN;
+    newOwnerMember.role = ProjectRole.OWNER;
+    project.owner = newOwnerId as any;
+
+    await project.save();
+
+    const updatedProject = await Project.findById(project._id)
+      .populate("owner", "firstName lastName email username")
+      .populate("members.user", "firstName lastName email username");
+
+    res.status(200).json({
+      success: true,
+      message: "Ownership transferred successfully",
+      data: updatedProject,
     });
   }
 );

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { Request, Response } from "express";
 import zod from "zod";
+import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
 import { env } from "../config/env.js";
 import jwt from "jsonwebtoken";
@@ -8,6 +9,13 @@ import bcrypt from "bcrypt";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 
 const router = Router();
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many authentication attempts. Please try again later." },
+});
 
 // ─── Validation Schemas 
 const registerSchema = zod.object({
@@ -33,7 +41,7 @@ function signToken(userId: string, role: "app_admin" | "user"): string {
 // ─── Routes 
 
 // POST /auth/register
-router.post("/register", async (req: Request, res: Response): Promise<void> => {
+router.post("/register", authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const parseResult = registerSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -90,7 +98,7 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /auth/login
-router.post("/login", async (req: Request, res: Response): Promise<void> => {
+router.post("/login", authLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const parseResult = loginSchema.safeParse(req.body);
     if (!parseResult.success) {

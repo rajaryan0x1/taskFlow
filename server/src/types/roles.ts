@@ -40,9 +40,9 @@ export const PERMISSIONS = {
   TASK_UPDATE_ANY:  [ProjectRole.OWNER, ProjectRole.ADMIN],
   TASK_UPDATE_OWN:  [ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.MEMBER],
 
-  // Chat
-  CHAT_SEND:        [ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.MEMBER],
-  CHAT_DELETE_ANY:  [ProjectRole.OWNER, ProjectRole.ADMIN],
+  // Comments
+  COMMENT_SEND:        [ProjectRole.OWNER, ProjectRole.ADMIN, ProjectRole.MEMBER],
+  COMMENT_DELETE_ANY:  [ProjectRole.OWNER, ProjectRole.ADMIN],
 } as const;
 
 export type PermissionKey = keyof typeof PERMISSIONS;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
@@ -38,13 +38,18 @@ const LoginPage = () => {
 
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
 
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/", { replace: true });
+        }
+    }, [isAuthenticated, navigate]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         loginMutation.mutate({ email, password });
     };
 
     if (isAuthenticated) {
-        navigate("/", { replace: true });
         return null;
     }
 

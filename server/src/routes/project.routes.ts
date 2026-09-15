@@ -12,6 +12,7 @@ import {
     deleteProject,
     inviteMember,
     removeMember,
+    transferOwnership,
 } from "../controllers/project.controller.js";
 
 import analyticsRoutes from "./analytics.routes.js";
@@ -68,6 +69,14 @@ router.delete(
     requireProjectAccess,
     requirePermission("PROJECT_REMOVE_MEMBER"),
     removeMember
+);
+
+router.post(
+    "/:projectId/transfer-ownership",
+    authMiddleware,
+    requireProjectAccess,
+    requirePermission("PROJECT_TRANSFER_OWNERSHIP"),
+    transferOwnership
 );
 
 // Added analytics routes (MongoDB aggregation pipelines) :)

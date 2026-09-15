@@ -6,20 +6,24 @@ import asyncHandler from "../utils/asyncHandler.js";
 
 const router = Router();
 
+export function escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // GET /api/v1/users/search?q=john
 // Search users by name, username, or email (for invite flow)
 router.get(
     "/search",
     authMiddleware,
     asyncHandler(async (req: Request, res: Response): Promise<void> => {
-        const query = req.query.q as string | undefined;
+        const query = (req.query.q as string | undefined)?.trim() ?? "";
 
-        if (!query || query.trim().length < 2) {
+        if (query.length < 2 || query.length > 100) {
             res.status(200).json({ success: true, data: [] });
             return;
         }
 
-        const regex = new RegExp(query.trim(), "i");
+        const regex = new RegExp(escapeRegex(query), "i");
 
         const users = await User.find({
             $or: [

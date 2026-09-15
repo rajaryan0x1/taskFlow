@@ -98,6 +98,16 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
         },
     });
 
+    const transferOwnershipMutation = useMutation({
+        mutationFn: async (newOwnerId: string) => {
+            const res = await api.post(`/projects/${projectId}/transfer-ownership`, { newOwnerId });
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+        },
+    });
+
     const handleInvite = (userId: string) => {
         inviteMutation.mutate({ userId, role: inviteRole });
     };
@@ -105,6 +115,12 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
     const handleRemove = (userId: string, name: string) => {
         if (window.confirm(`Remove ${name} from this project?`)) {
             removeMutation.mutate(userId);
+        }
+    };
+
+    const handleTransferOwnership = (userId: string, name: string) => {
+        if (window.confirm(`Transfer ownership to ${name}? They will become the new project owner.`)) {
+            transferOwnershipMutation.mutate(userId);
         }
     };
 
@@ -211,6 +227,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                         const isCurrentUser = member.user._id === currentUser?.id;
                         const isOwner = member.role === "owner";
                         const canRemove = canManage && !isOwner && !isCurrentUser;
+                        const canTransferOwnership = currentUserRole === "owner" && !isOwner && !isCurrentUser;
 
                         return (
                             <div
@@ -238,6 +255,22 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                     >
                                         {member.role}
                                     </span>
+
+                                    {canTransferOwnership && (
+                                        <button
+                                            onClick={() =>
+                                                handleTransferOwnership(
+                                                    member.user._id,
+                                                    `${member.user.firstName} ${member.user.lastName}`
+                                                )
+                                            }
+                                            disabled={transferOwnershipMutation.isPending}
+                                            className="px-2 py-1 text-xs font-medium text-purple-700 bg-purple-100 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
+                                            title="Make owner"
+                                        >
+                                            Make owner
+                                        </button>
+                                    )}
 
                                     {canRemove && (
                                         <button
