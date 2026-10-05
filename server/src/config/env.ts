@@ -1,29 +1,47 @@
 import dotenv from "dotenv";
+import { z } from "zod";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
-function required(key: string, fallback?: string): string {
-  const value = process.env[key] ?? fallback;
-  if (!value && process.env.NODE_ENV === "production") {
-    throw new Error(`${key} is not defined`);
-  }
-  return value ?? "";
-}
+const isProduction = process.env.NODE_ENV === "production";
 
-function requiredNumber(key: string, fallback: number): number {
-  const value = process.env[key] ?? String(fallback);
-  const parsed = Number(value);
-  if (Number.isNaN(parsed)) {
-    throw new Error(`${key} must be a number`);
-  }
-  return parsed;
+/**
+ * A required string setting. Outside production a development fallback is
+ * used when the variable is missing; in production the variable must be set
+ * explicitly — silently falling back to a well-known value (e.g. a JWT secret)
+ * would let anyone forge tokens.
+ */
+const secret = (name: string, devFallback: string, minProdLength = 1) => {
+  const base = z
+    .string({ error: `${name} is required` })
+    .min(isProduction ? minProdLength : 1, `${name} must be at least ${minProdLength} characters in production`);
+  return isProduction ? base : base.default(devFallback);
+};
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(5000),
+  MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev"),
+  JWT_SECRET: secret("JWT_SECRET", "dev-secret", 32),
+  JWT_EXPIRES_IN: z.string().default("1h"),
+  CORS_ORIGINS: z.string().default("http://localhost:5173"),
+  // Number of reverse proxies in front of the app (0 = none). Needed so that
+  // rate limiting keys on the real client IP instead of the proxy's.
+  TRUST_PROXY: z.coerce.number().int().min(0).default(0),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  const details = parsed.error.issues
+    .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
+    .join("\n");
+  throw new Error(`Invalid environment configuration:\n${details}`);
 }
 
 export const env = {
-  PORT: requiredNumber("PORT", 5000),
-  MONGO_URI: required("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev"),
-  JWT_SECRET: required("JWT_SECRET", "dev-secret"),
-  JWT_REFRESH_SECRET: required("JWT_REFRESH_SECRET", "dev-refresh-secret"),
-  NODE_ENV: process.env.NODE_ENV ?? "development",
-  CORS_ORIGINS: (process.env.CORS_ORIGINS ?? "http://localhost:5173").split(",").map((origin) => origin.trim()).filter(Boolean),
+  ...parsed.data,
+  CORS_ORIGINS: parsed.data.CORS_ORIGINS.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 } as const;
