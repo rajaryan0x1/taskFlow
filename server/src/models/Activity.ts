@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-export type ActivityType = "created" | "status_changed" | "assigned" | "commented";
+export type ActivityType = "created" | "status_changed" | "assigned" | "commented" | "updated" | "priority_changed" | "due_date_changed" | "archived" | "restored" | "comment_deleted";
 
 export interface IActivity extends Document {
   project: Types.ObjectId;
@@ -18,7 +18,7 @@ const ActivitySchema = new Schema<IActivity>(
     actor: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
-      enum: ["created", "status_changed", "assigned", "commented"],
+      enum: ["created", "status_changed", "assigned", "commented", "updated", "priority_changed", "due_date_changed", "archived", "restored", "comment_deleted"],
       required: true,
     },
     meta: { type: Schema.Types.Mixed, default: {} },

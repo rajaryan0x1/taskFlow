@@ -241,6 +241,10 @@ export const updateTask = asyncHandler(
         const userRole = req.projectMembership!.role;
         const previousStatus = task.status;
         const previousAssignee = task.assignee?.toString() ?? null;
+        const previousPriority = task.priority;
+        const previousDueDate = task.dueDate?.toISOString() ?? null;
+        const previousTitle = task.title;
+        const previousDescription = task.description;
 
         // Members can only update tasks assigned to them
         if (userRole === ProjectRole.MEMBER) {
@@ -318,6 +322,27 @@ export const updateTask = asyncHandler(
                 });
             }
         }
+        if (updates.priority !== undefined && updates.priority !== previousPriority) {
+            await logActivity(task.project, task._id, req.user!.id, "priority_changed", {
+                from: previousPriority,
+                to: updates.priority,
+            }, req.app.locals.io);
+        }
+        if (updates.dueDate !== undefined) {
+            const newDueDate = task.dueDate?.toISOString() ?? null;
+            if (newDueDate !== previousDueDate) {
+                await logActivity(task.project, task._id, req.user!.id, "due_date_changed", {
+                    from: previousDueDate,
+                    to: newDueDate,
+                }, req.app.locals.io);
+            }
+        }
+        if (
+            (updates.title !== undefined && updates.title !== previousTitle) ||
+            (updates.description !== undefined && updates.description !== previousDescription)
+        ) {
+            await logActivity(task.project, task._id, req.user!.id, "updated", {}, req.app.locals.io);
+        }
 
         const updatedTask = await Task.findById(task._id)
             .populate("project", "name")
@@ -370,6 +395,7 @@ export const deleteTask = asyncHandler(
         } else {
             task.isArchived = true;
             await task.save();
+            await logActivity(task.project, task._id, req.user!.id, "archived", {}, req.app.locals.io);
 
             const io = req.app.locals.io;
             if (io) {
@@ -525,6 +551,7 @@ export const deleteTaskComment = asyncHandler(
         }
 
         await comment.deleteOne();
+        await logActivity(task.project, task._id, req.user!.id, "comment_deleted", {}, req.app.locals.io);
         const io = req.app.locals.io;
         if (io) broadcastCommentDeleted(io, req.projectMembership!.project._id.toString(), commentId);
 
