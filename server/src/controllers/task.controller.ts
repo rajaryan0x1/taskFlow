@@ -31,7 +31,7 @@ const createTaskSchema = zod.object({
         .default(TaskPriority.MEDIUM),
     assignee: zod.string().optional(),
     dueDate: zod.iso.datetime().optional(),
-    projectId: zod.string().min(1, "Project ID is required"),
+    projectId: zod.string().optional(),
 });
 
 const updateTaskSchema = zod.object({
@@ -91,8 +91,10 @@ export const createTask = asyncHandler(
             );
         }
 
-        const { title, description, status, priority, assignee, dueDate, projectId } =
-            parseResult.data;
+        const { title, description, status, priority, assignee, dueDate } = parseResult.data;
+        const projectIdRaw = req.params.projectId || parseResult.data.projectId;
+        if (!projectIdRaw || typeof projectIdRaw !== 'string') throw ApiError.badRequest("Project ID is required");
+        const projectId = projectIdRaw;
 
         // Validate projectId
         if (!Types.ObjectId.isValid(projectId)) {
@@ -195,22 +197,10 @@ export const getTaskById = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = await Task.findById(taskId)
-            .populate("project", "name")
-            .populate("assignee", "firstName lastName email username")
-            .populate("createdBy", "firstName lastName email username");
-
-        if (!task) {
-            throw ApiError.notFound("Task not found");
-        }
-
-        // Verify task belongs to a project the user has access to
-        if (
-            task.project._id.toString() !==
-            req.projectMembership!.project._id.toString()
-        ) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
+        await task.populate("project", "name");
+        await task.populate("assignee", "firstName lastName email username");
+        await task.populate("createdBy", "firstName lastName email username");
 
         res.status(200).json({
             success: true,
@@ -245,19 +235,7 @@ export const updateTask = asyncHandler(
             throw ApiError.badRequest("At least one field is required to update");
         }
 
-        const task = await Task.findById(taskId);
-
-        if (!task) {
-            throw ApiError.notFound("Task not found");
-        }
-
-        // Verify task belongs to the project
-        if (
-            task.project.toString() !==
-            req.projectMembership!.project._id.toString()
-        ) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         const userRole = req.projectMembership!.role;
         const previousStatus = task.status;
@@ -370,22 +348,12 @@ export const deleteTask = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = await Task.findById(taskId);
-
-        if (!task) {
-            throw ApiError.notFound("Task not found");
-        }
-
-        // Verify task belongs to the project
-        if (
-            task.project.toString() !==
-            req.projectMembership!.project._id.toString()
-        ) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         if (hardDelete) {
-            await Task.findByIdAndDelete(taskId);
+                        await Task.findByIdAndDelete(taskId);
+            await Comment.deleteMany({ task: taskId });
+            await Activity.deleteMany({ task: taskId });
             res.status(200).json({
                 success: true,
                 message: "Task permanently deleted",
@@ -434,19 +402,7 @@ export const assignTask = asyncHandler(
 
         const { assignee } = parseResult.data;
 
-        const task = await Task.findById(taskId);
-
-        if (!task) {
-            throw ApiError.notFound("Task not found");
-        }
-
-        // Verify task belongs to the project
-        if (
-            task.project.toString() !==
-            req.projectMembership!.project._id.toString()
-        ) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         // Empty string means unassign
         if (assignee === "") {
@@ -498,11 +454,7 @@ export const getTaskComments = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = await Task.findById(taskId).select("project");
-        if (!task) throw ApiError.notFound("Task not found");
-        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         const comments = await Comment.find({ task: taskId })
             .populate("author", "firstName lastName username")
@@ -524,11 +476,7 @@ export const createTaskComment = asyncHandler(
             throw ApiError.badRequest(parseResult.error.issues.map((issue) => issue.message).join(", "));
         }
 
-        const task = await Task.findById(taskId).select("project");
-        if (!task) throw ApiError.notFound("Task not found");
-        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         const comment = await Comment.create({
             task: taskId,
@@ -556,11 +504,7 @@ export const deleteTaskComment = asyncHandler(
             throw ApiError.badRequest("Invalid task or comment ID");
         }
 
-        const task = await Task.findById(taskId).select("project");
-        if (!task) throw ApiError.notFound("Task not found");
-        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         const comment = await Comment.findOne({ _id: commentId, task: taskId });
         if (!comment) throw ApiError.notFound("Comment not found");
@@ -586,11 +530,7 @@ export const getTaskActivity = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = await Task.findById(taskId).select("project");
-        if (!task) throw ApiError.notFound("Task not found");
-        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
-            throw ApiError.forbidden("You don't have access to this task");
-        }
+        const task = req.task;
 
         const activity = await Activity.find({ task: taskId })
             .populate("actor", "firstName lastName username")

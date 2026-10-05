@@ -1,11 +1,7 @@
-// task routes
-
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import {
-    requireProjectAccess,
-    requirePermission,
-} from "../middleware/rbac.js";
+import { requireProjectAccess, requirePermission } from "../middleware/rbac.js";
+import { loadTask } from "../middleware/task.middleware.js";
 import {
     createTask,
     getTasksByProject,
@@ -21,12 +17,18 @@ import {
 
 const router = Router();
 
+// Deprecated alias
 router.post("/", authMiddleware, createTask);
 
 export const projectTaskRoutes = Router({ mergeParams: true });
 
-// Changes made here 
-// router -> projectTaskRoutes
+projectTaskRoutes.post(
+    "/",
+    authMiddleware,
+    requireProjectAccess,
+    requirePermission("TASK_CREATE"),
+    createTask
+);
 
 projectTaskRoutes.get(
     "/",
@@ -38,33 +40,33 @@ projectTaskRoutes.get(
 projectTaskRoutes.get(
     "/:taskId",
     authMiddleware,
-    requireProjectAccess, // Need to pass projectId somehow to check access, maybe via query or middleware that fetches task and checks project access
+    requireProjectAccess,
+    loadTask,
     getTaskById
 );
-
-
 
 projectTaskRoutes.patch(
     "/:taskId",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     updateTask
 );
-
 
 projectTaskRoutes.delete(
     "/:taskId",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     requirePermission("TASK_DELETE"),
     deleteTask
 );
-
 
 projectTaskRoutes.patch(
     "/:taskId/assign",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     requirePermission("TASK_UPDATE_ANY"),
     assignTask
 );
@@ -73,20 +75,15 @@ projectTaskRoutes.get(
     "/:taskId/comments",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     getTaskComments
-);
-
-projectTaskRoutes.get(
-    "/:taskId/activity",
-    authMiddleware,
-    requireProjectAccess,
-    getTaskActivity
 );
 
 projectTaskRoutes.post(
     "/:taskId/comments",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     requirePermission("COMMENT_SEND"),
     createTaskComment
 );
@@ -95,7 +92,16 @@ projectTaskRoutes.delete(
     "/:taskId/comments/:commentId",
     authMiddleware,
     requireProjectAccess,
+    loadTask,
     deleteTaskComment
+);
+
+projectTaskRoutes.get(
+    "/:taskId/activity",
+    authMiddleware,
+    requireProjectAccess,
+    loadTask,
+    getTaskActivity
 );
 
 export default router;
