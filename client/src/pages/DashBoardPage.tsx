@@ -32,11 +32,12 @@ const DashboardPage = () => {
     const [projectDescription, setProjectDescription] = useState("");
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
+    const [showArchived, setShowArchived] = useState(false);
 
     const { data, isLoading, error } = useQuery({
-        queryKey: ["projects"],
+        queryKey: ["projects", showArchived],
         queryFn: async () => {
-            const response = await api.get<{ data: Project[] }>("/projects");
+            const response = await api.get<{ data: Project[] }>(`/projects?archived=${showArchived}`);
             return response.data.data;
         },
     });

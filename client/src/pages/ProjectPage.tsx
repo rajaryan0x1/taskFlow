@@ -8,6 +8,7 @@ import TaskEditModal from "../components/TaskEditModal";
 import CreateTaskModal from "../components/CreateTaskModal";
 import { FilterBar } from "../components/board/FilterBar";
 import { KanbanBoard } from "../components/board/KanbanBoard";
+import { ProjectSettings } from "../components/ProjectSettings";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import MembersPanel from "../components/MembersPanel";
 import { useAuthStore } from "../stores/authStore";
@@ -58,7 +59,7 @@ const ProjectPage = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-    const [activeTab, setActiveTab] = useState<"board" | "analytics" | "members">("board");
+    const [activeTab, setActiveTab] = useState<"board" | "analytics" | "members" | "settings">("board");
     const [titleFilter, setTitleFilter] = useState("");
     const [assigneeFilter, setAssigneeFilter] = useState("all");
     const [priorityFilters, setPriorityFilters] = useState<Set<Task["priority"]>>(new Set());
@@ -152,7 +153,7 @@ const ProjectPage = () => {
                                 </svg>
                             </button>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">{project?.name}</h1>
+                                <h1 className="text-xl font-bold text-gray-900">{project?.name} {project?.archived && <span className="text-sm font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full ml-2 align-middle border border-red-200">(Archived)</span>}</h1>
                                 <p className="text-sm text-gray-500">
                                     {project?.members.length} member{project?.members.length !== 1 ? "s" : ""}
                                 </p>

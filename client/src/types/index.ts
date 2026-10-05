@@ -22,6 +22,7 @@ export interface Project {
     owner: User;
     members: Member[];
     createdAt: string;
+    archived?: boolean;
     updatedAt: string;
 }
 
@@ -36,6 +37,7 @@ export interface Task {
     createdBy: User | string;
     dueDate?: string;
     createdAt: string;
+    archived?: boolean;
     updatedAt: string;
 }
 
