@@ -137,15 +137,23 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
         },
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        updateTaskMutation.mutate({
-            title,
-            description: description || undefined,
-            status,
-            priority,
-            assignee: assignee || undefined,
-        });
+    const handleSubmit = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const updates: any = {};
+        if (title !== task.title) updates.title = title;
+        if (description !== (task.description || "")) updates.description = description || null;
+        if (status !== task.status) updates.status = status;
+        if (priority !== task.priority) updates.priority = priority;
+        const currentAssignee = task.assignee ? (typeof task.assignee === 'string' ? task.assignee : task.assignee._id) : "";
+        if (assignee !== currentAssignee) updates.assignee = assignee || null;
+        const oldDueDate = task.dueDate ? task.dueDate.split('T')[0] : "";
+        if (dueDate !== oldDueDate) updates.dueDate = dueDate || null;
+
+        if (Object.keys(updates).length > 0) {
+            updateTaskMutation.mutate(updates);
+        } else {
+            onClose(); // No changes to save
+        }
     };
 
     const handleDelete = () => {
@@ -169,7 +177,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <div className="space-y-4 mt-4">
                     <div className="space-y-4">
                         <div>
                             <label htmlFor="editTitle" className="block text-sm font-medium text-gray-700 mb-1">
@@ -354,7 +362,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 Cancel
                             </button>
                             <button
-                                type="submit"
+                                type="button"
+                                onClick={handleSubmit}
                                 disabled={updateTaskMutation.isPending || !canEdit}
                                 style={{ display: canEdit ? "block" : "none" }}
                                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
@@ -363,7 +372,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             </button>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );
