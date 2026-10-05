@@ -119,6 +119,13 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
         inviteMutation.mutate({ userId, role: inviteRole });
     };
 
+
+    const handleLeave = () => {
+        if (window.confirm("Are you sure you want to leave this project?")) {
+            leaveMutation.mutate();
+        }
+    };
+
     const handleRemove = (userId: string, name: string) => {
         if (window.confirm(`Remove ${name} from this project?`)) {
             removeMutation.mutate(userId);
@@ -228,6 +235,15 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                 <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
                     Project Members ({members.length})
                 </h3>
+                {currentUserRole !== "owner" && (
+                    <button
+                        onClick={handleLeave}
+                        disabled={leaveMutation.isPending}
+                        className="mb-4 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                    >
+                        Leave Project
+                    </button>
+                )}
 
                 <div className="divide-y divide-gray-100">
                     {members.map((member) => {
@@ -257,11 +273,23 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                 </div>
 
                                 <div className="flex items-center gap-2">
-                                    <span
-                                        className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getRoleBadgeColor(member.role)}`}
-                                    >
-                                        {member.role}
-                                    </span>
+                                    {canRemove ? (
+                                        <select
+                                            value={member.role}
+                                            onChange={(e) => updateRoleMutation.mutate({ userId: member.user._id, role: e.target.value })}
+                                            disabled={updateRoleMutation.isPending}
+                                            className="px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 capitalize bg-white disabled:opacity-50"
+                                        >
+                                            <option value="member">Member</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    ) : (
+                                        <span
+                                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getRoleBadgeColor(member.role)}`}
+                                        >
+                                            {member.role}
+                                        </span>
+                                    )}
 
                                     {canTransferOwnership && (
                                         <button
