@@ -143,9 +143,9 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
             case "owner":
                 return "bg-purple-100 text-purple-800";
             case "admin":
-                return "bg-blue-100 text-blue-800";
+                return "bg-blue-100 text-indigo-300";
             default:
-                return "bg-gray-100 text-gray-700";
+                return "bg-white/5 text-slate-200";
         }
     };
 
@@ -153,8 +153,8 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
         <div className="space-y-6">
             {/* ── Invite Section ── */}
             {canManage && (
-                <div className="bg-white rounded-lg border border-gray-200 p-6">
-                    <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
+                <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-6">
+                    <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
                         Invite Member
                     </h3>
                     <div className="flex gap-3 items-start">
@@ -168,40 +168,40 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                 }}
                                 onFocus={() => searchQuery.length >= 2 && setShowDropdown(true)}
                                 placeholder="Search by name, username, or email..."
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                             />
 
                             {/* Search results dropdown */}
                             {showDropdown && debouncedQuery.length >= 2 && (
-                                <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                <div className="absolute z-10 mt-1 w-full bg-white/5 backdrop-blur-md border border-white/10 text-white border border-white/10 rounded-md shadow-lg max-h-60 overflow-y-auto">
                                     {filteredResults.length > 0 ? (
                                         filteredResults.map((user) => (
                                             <button
                                                 key={user._id}
                                                 onClick={() => handleInvite(user._id)}
                                                 disabled={inviteMutation.isPending}
-                                                className="w-full text-left px-4 py-3 hover:bg-blue-50 flex items-center justify-between border-b border-gray-100 last:border-0 disabled:opacity-50"
+                                                className="w-full text-left px-4 py-3 hover:bg-blue-900/20 flex items-center justify-between border-b border-gray-100 last:border-0 disabled:opacity-50"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-medium">
+                                                    <div className="w-8 h-8 rounded-full bg-blue-900/200 flex items-center justify-center text-white text-xs font-medium">
                                                         {user.firstName[0]}{user.lastName[0]}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-medium text-gray-900">
+                                                        <p className="text-sm font-medium text-white">
                                                             {user.firstName} {user.lastName}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-slate-400">
                                                             @{user.username} · {user.email}
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <span className="text-xs text-blue-600 font-medium">
+                                                <span className="text-xs text-indigo-400 font-medium">
                                                     Invite
                                                 </span>
                                             </button>
                                         ))
                                     ) : (
-                                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                                        <div className="px-4 py-3 text-sm text-slate-400 text-center">
                                             No users found
                                         </div>
                                     )}
@@ -212,7 +212,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                         <select
                             value={inviteRole}
                             onChange={(e) => setInviteRole(e.target.value as "member" | "admin")}
-                            className="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="member">Member</option>
                             <option value="admin">Admin</option>
@@ -231,15 +231,15 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
             )}
 
             {/* ── Members List ── */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-6">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
                     Project Members ({members.length})
                 </h3>
                 {currentUserRole !== "owner" && (
                     <button
                         onClick={handleLeave}
                         disabled={leaveMutation.isPending}
-                        className="mb-4 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-md hover:bg-red-50 disabled:opacity-50"
+                        className="mb-4 px-3 py-1.5 text-sm font-medium text-red-600 border border-red-200 rounded-md hover:bg-rose-900/20 disabled:opacity-50"
                     >
                         Leave Project
                     </button>
@@ -258,17 +258,17 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                 className="flex items-center justify-between py-3"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                                    <div className="w-9 h-9 rounded-full bg-blue-900/200 flex items-center justify-center text-white text-sm font-medium">
                                         {member.user.firstName[0]}{member.user.lastName[0]}
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-900">
+                                        <p className="text-sm font-medium text-white">
                                             {member.user.firstName} {member.user.lastName}
                                             {isCurrentUser && (
-                                                <span className="ml-1 text-xs text-gray-400">(you)</span>
+                                                <span className="ml-1 text-xs text-slate-500">(you)</span>
                                             )}
                                         </p>
-                                        <p className="text-xs text-gray-500">{member.user.email}</p>
+                                        <p className="text-xs text-slate-400">{member.user.email}</p>
                                     </div>
                                 </div>
 
@@ -278,7 +278,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                             value={member.role}
                                             onChange={(e) => updateRoleMutation.mutate({ userId: member.user._id, role: e.target.value })}
                                             disabled={updateRoleMutation.isPending}
-                                            className="px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 capitalize bg-white disabled:opacity-50"
+                                            className="px-2 py-1 text-xs border border-white/10 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 capitalize bg-white/5 backdrop-blur-md border border-white/10 text-white disabled:opacity-50"
                                         >
                                             <option value="member">Member</option>
                                             <option value="admin">Admin</option>
@@ -316,7 +316,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                                 )
                                             }
                                             disabled={removeMutation.isPending}
-                                            className="p-1 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                                            className="p-1 text-slate-500 hover:text-red-600 transition-colors disabled:opacity-50"
                                             title="Remove member"
                                         >
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

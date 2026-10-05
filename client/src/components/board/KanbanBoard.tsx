@@ -16,7 +16,7 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             status="todo"
             tasks={todoTasks}
             onTaskDrop={onTaskDrop}
-            colorClass="bg-gray-100"
+            colorClass="bg-white/5"
             onTaskClick={onTaskClick}
         />
         <KanbanColumn
@@ -24,7 +24,7 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             status="in_progress"
             tasks={inProgressTasks}
             onTaskDrop={onTaskDrop}
-            colorClass="bg-blue-50"
+            colorClass="bg-blue-900/20"
             onTaskClick={onTaskClick}
         />
         <KanbanColumn
@@ -32,7 +32,7 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             status="done"
             tasks={doneTasks}
             onTaskDrop={onTaskDrop}
-            colorClass="bg-green-50"
+            colorClass="bg-emerald-900/20"
             onTaskClick={onTaskClick}
         />
     </div>

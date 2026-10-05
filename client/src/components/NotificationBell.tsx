@@ -78,7 +78,7 @@ const NotificationBell = () => {
                 type="button"
                 aria-label="Notifications"
                 onClick={() => setOpen((current) => !current)}
-                className="relative rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                className="relative rounded-md p-2 text-slate-300 hover:bg-white/5 hover:text-white"
             >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.5-2V10a6.5 6.5 0 0 0-13 0v5L4 17h5m6 0a3 3 0 0 1-6 0m6 0H9" />
@@ -91,13 +91,13 @@ const NotificationBell = () => {
             </button>
 
             {open && (
-                <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
+                <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md border border-white/10 text-white p-3 shadow-lg">
                     <div className="mb-2 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-gray-900">Notifications</h2>
+                        <h2 className="text-sm font-semibold text-white">Notifications</h2>
                         <button
                             type="button"
                             onClick={() => markAllReadMutation.mutate()}
-                            className="text-xs font-medium text-blue-600 hover:text-blue-800"
+                            className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
                         >
                             Mark all read
                         </button>
@@ -114,13 +114,13 @@ const NotificationBell = () => {
                                         setOpen(false);
                                     }
                                 }}
-                                className={`block w-full rounded-md p-2 text-left text-sm ${notification.read ? "text-gray-500" : "bg-blue-50 text-gray-900"}`}
+                                className={`block w-full rounded-md p-2 text-left text-sm ${notification.read ? "text-slate-400" : "bg-blue-900/20 text-white"}`}
                             >
                                 <span>{describe(notification)}</span>
-                                <span className="mt-1 block text-xs text-gray-400">{new Date(notification.createdAt).toLocaleString()}</span>
+                                <span className="mt-1 block text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString()}</span>
                             </button>
                         ))}
-                        {data?.data.length === 0 && <p className="p-2 text-sm text-gray-500">No notifications.</p>}
+                        {data?.data.length === 0 && <p className="p-2 text-sm text-slate-400">No notifications.</p>}
                     </div>
                 </div>
             )}

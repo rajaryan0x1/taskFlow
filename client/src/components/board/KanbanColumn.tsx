@@ -12,7 +12,7 @@ interface KanbanColumnProps {
 
 export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, onTaskDrop }: KanbanColumnProps) => (
     <div
-        className={`${colorClass} rounded-lg p-4 min-h-[200px]`}
+        className={`${colorClass} rounded-2xl p-4 min-h-[200px] backdrop-blur-md border border-white/10 shadow-2xl`}
         onDragOver={(e) => {
             if (onTaskDrop) e.preventDefault();
         }}
@@ -26,9 +26,9 @@ export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, on
         }}
     >
         <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-gray-900">
+            <h2 className="font-semibold text-white">
                 {title}
-                <span className="ml-2 text-sm text-gray-500">({tasks.length})</span>
+                <span className="ml-2 text-sm text-slate-400">({tasks.length})</span>
             </h2>
         </div>
         <div className="space-y-3">
@@ -40,7 +40,7 @@ export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, on
                 />
             ))}
             {tasks.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">
+                <div className="text-center py-8 text-slate-500 text-sm">
                     No tasks yet
                 </div>
             )}

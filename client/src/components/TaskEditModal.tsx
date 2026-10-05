@@ -165,12 +165,12 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
 
     return (
         <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Edit Task</h3>
+                    <h3 className="text-lg font-semibold text-white">Edit Task</h3>
                     <button
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-slate-500 hover:text-slate-300"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -181,7 +181,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                 <div className="space-y-4 mt-4">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="editTitle" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editTitle" className="block text-sm font-medium text-slate-200 mb-1">
                                 Title
                             </label>
                             <input
@@ -190,12 +190,12 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 required
                                 value={title}
                                 disabled={!canEdit} onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="editDescription" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editDescription" className="block text-sm font-medium text-slate-200 mb-1">
                                 Description
                             </label>
                             <textarea
@@ -203,19 +203,19 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 value={description}
                                 disabled={!canEdit} onChange={(e) => setDescription(e.target.value)}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="editStatus" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editStatus" className="block text-sm font-medium text-slate-200 mb-1">
                                 Status
                             </label>
                             <select
                                 id="editStatus"
                                 value={status}
                                 disabled={!canEdit} onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="todo">To Do</option>
                                 <option value="in_progress">In Progress</option>
@@ -224,7 +224,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </div>
 
                         <div>
-                            <label htmlFor="editDueDate" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editDueDate" className="block text-sm font-medium text-slate-200 mb-1">
                                 Due Date
                             </label>
                             <input
@@ -232,18 +232,18 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 type="date"
                                 value={dueDate}
                                 disabled={!canEdit} onChange={(e) => setDueDate(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
                         <div>
-                            <label htmlFor="editPriority" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editPriority" className="block text-sm font-medium text-slate-200 mb-1">
                                 Priority
                             </label>
                             <select
                                 id="editPriority"
                                 value={priority}
                                 disabled={!canEdit} onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -252,14 +252,14 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </div>
 
                         <div>
-                            <label htmlFor="editAssignee" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="editAssignee" className="block text-sm font-medium text-slate-200 mb-1">
                                 Assignee
                             </label>
                             <select
                                 id="editAssignee"
                                 value={assignee}
                                 disabled={!canEdit} onChange={(e) => setAssignee(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Unassigned</option>
                                 {projectMembers.map((member) => (
@@ -271,24 +271,24 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </div>
                     </div>
 
-                    <section className="mt-6 border-t border-gray-200 pt-5">
-                        <h4 className="text-sm font-semibold text-gray-900">Comments</h4>
+                    <section className="mt-6 border-t border-white/10 pt-5">
+                        <h4 className="text-sm font-semibold text-white">Comments</h4>
                         <div className="mt-3 max-h-48 space-y-3 overflow-y-auto">
-                            {comments.length === 0 && <p className="text-sm text-gray-500">No comments yet.</p>}
+                            {comments.length === 0 && <p className="text-sm text-slate-400">No comments yet.</p>}
                             {comments.map((comment) => (
-                                <div key={comment._id} className="rounded-md bg-gray-50 p-3">
-                                    <div className="flex items-center justify-between text-xs text-gray-500">
-                                        <span className="font-medium text-gray-700">{comment.author.firstName} {comment.author.lastName}</span>
+                                <div key={comment._id} className="rounded-md bg-transparent p-3">
+                                    <div className="flex items-center justify-between text-xs text-slate-400">
+                                        <span className="font-medium text-slate-200">{comment.author.firstName} {comment.author.lastName}</span>
                                         <button
                                             type="button"
                                             onClick={() => deleteCommentMutation.mutate(comment._id)}
                                             style={{ display: (currentUserRole === "owner" || currentUserRole === "admin" || comment.author._id === user?.id) ? "block" : "none" }}
-                                            className="text-red-600 hover:text-red-800"
+                                            className="text-red-600 hover:text-rose-300"
                                         >
                                             Delete
                                         </button>
                                     </div>
-                                    <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.body}</p>
+                                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-200">{comment.body}</p>
                                 </div>
                             ))}
                         </div>
@@ -304,7 +304,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 onChange={(event) => setCommentBody(event.target.value)}
                                 maxLength={2000}
                                 placeholder="Add a comment"
-                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                className="min-w-0 flex-1 rounded-md border border-white/10 px-3 py-2 text-sm"
                             />
                             <button
                                 type="submit"
@@ -316,13 +316,13 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </form>
                     </section>
 
-                    <section className="mt-6 border-t border-gray-200 pt-5">
-                        <h4 className="text-sm font-semibold text-gray-900">Activity</h4>
+                    <section className="mt-6 border-t border-white/10 pt-5">
+                        <h4 className="text-sm font-semibold text-white">Activity</h4>
                         <div className="mt-3 space-y-2">
-                            {activity.length === 0 && <p className="text-sm text-gray-500">No activity yet.</p>}
+                            {activity.length === 0 && <p className="text-sm text-slate-400">No activity yet.</p>}
                             {activity.map((entry) => (
-                                <div key={entry._id} className="text-sm text-gray-600">
-                                    <span className="font-medium text-gray-800">
+                                <div key={entry._id} className="text-sm text-slate-300">
+                                    <span className="font-medium text-slate-200">
                                         {entry.actor.firstName} {entry.actor.lastName}
                                     </span>{" "}
                                     {entry.type === "status_changed"
@@ -330,7 +330,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                         : entry.type === "assigned"
                                             ? entry.meta.assignee ? "assigned the task" : "unassigned the task"
                                             : entry.type === "commented" ? "commented on the task" : "created the task"}
-                                    <span className="ml-2 text-xs text-gray-400">
+                                    <span className="ml-2 text-xs text-slate-500">
                                         {new Date(entry.createdAt).toLocaleString()}
                                     </span>
                                 </div>
@@ -339,7 +339,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                     </section>
 
                     {updateTaskMutation.isError && (
-                        <div className="mt-4 bg-red-50 text-red-600 p-3 rounded text-sm">
+                        <div className="mt-4 bg-rose-900/20 text-red-600 p-3 rounded text-sm">
                             {getErrorMessage(updateTaskMutation.error, "Failed to update task")}
                         </div>
                     )}
@@ -350,7 +350,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             onClick={handleDelete}
                             disabled={deleteTaskMutation.isPending || !canDelete}
                             style={{ display: canDelete ? "block" : "none" }}
-                            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-300 rounded-md disabled:opacity-50"
+                            className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-rose-900/20 border border-red-300 rounded-md disabled:opacity-50"
                         >
                             {deleteTaskMutation.isPending ? "Deleting..." : "Delete Task"}
                         </button>
@@ -358,7 +358,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
+                                className="px-4 py-2 text-sm font-medium text-slate-200 hover:bg-transparent border border-white/10 rounded-md"
                             >
                                 Cancel
                             </button>
@@ -367,7 +367,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 onClick={handleSubmit}
                                 disabled={updateTaskMutation.isPending || !canEdit}
                                 style={{ display: canEdit ? "block" : "none" }}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
+                                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all rounded-md disabled:opacity-50"
                             >
                                 {updateTaskMutation.isPending ? "Saving..." : "Save Changes"}
                             </button>

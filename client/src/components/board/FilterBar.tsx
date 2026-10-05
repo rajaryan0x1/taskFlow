@@ -21,20 +21,20 @@ export const FilterBar = ({
     clearFilters,
     projectMembers
 }: FilterBarProps) => (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 flex flex-wrap gap-4 items-center">
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-4 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-[200px]">
             <input
                 type="text"
                 placeholder="Search tasks..."
                 value={titleFilter}
                 onChange={(e) => setTitleFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
             />
         </div>
         <select
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
         >
             <option value="all">All Assignees</option>
             {projectMembers.map((member) => (
@@ -51,11 +51,11 @@ export const FilterBar = ({
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border capitalize transition-colors ${
                         priorityFilters.has(p)
                             ? p === "high"
-                                ? "bg-red-100 border-red-200 text-red-800"
+                                ? "bg-rose-900/40 border-red-200 text-rose-300"
                                 : p === "medium"
-                                ? "bg-yellow-100 border-yellow-200 text-yellow-800"
-                                : "bg-green-100 border-green-200 text-green-800"
-                            : "bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100"
+                                ? "bg-amber-900/40 border-yellow-200 text-amber-300"
+                                : "bg-emerald-900/40 border-green-200 text-emerald-300"
+                            : "bg-transparent border-white/10 text-slate-400 hover:bg-white/5"
                     }`}
                 >
                     {p}
@@ -66,7 +66,7 @@ export const FilterBar = ({
             <button
                 type="button"
                 onClick={clearFilters}
-                className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                className="text-sm font-medium text-indigo-400 hover:text-indigo-300"
             >
                 Clear filters
             </button>

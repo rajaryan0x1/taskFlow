@@ -144,14 +144,14 @@ const createTaskMutation = useMutation({
     };
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            <header className="bg-white border-b border-gray-200">
+        <div className="min-h-screen bg-transparent">
+            <header className="bg-white/5 backdrop-blur-md border border-white/10 text-white border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={() => navigate("/")}
-                                className="text-gray-600 hover:text-gray-900"
+                                className="text-slate-300 hover:text-white"
                             >
                                 <svg
                                     className="w-6 h-6"
@@ -168,21 +168,21 @@ const createTaskMutation = useMutation({
                                 </svg>
                             </button>
                             <div>
-                                <h1 className="text-xl font-bold text-gray-900">{project?.name} {project?.archived && <span className="text-sm font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full ml-2 align-middle border border-red-200">(Archived)</span>}</h1>
-                                <p className="text-sm text-gray-500">
+                                <h1 className="text-xl font-bold text-white">{project?.name} {project?.archived && <span className="text-sm font-medium text-red-600 bg-rose-900/20 px-2 py-0.5 rounded-full ml-2 align-middle border border-red-200">(Archived)</span>}</h1>
+                                <p className="text-sm text-slate-400">
                                     {project?.members.length} member{project?.members.length !== 1 ? "s" : ""}
                                 </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
                             <NotificationBell />
-                            <div className="flex bg-gray-100 rounded-lg p-0.5">
+                            <div className="flex bg-white/5 rounded-lg p-0.5">
                                 <button
                                     onClick={() => setActiveTab("board")}
                                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                                         activeTab === "board"
-                                            ? "bg-white text-gray-900 shadow-sm"
-                                            : "text-gray-500 hover:text-gray-700"
+                                            ? "bg-white/5 backdrop-blur-md border border-white/10 text-white text-white shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
                                     }`}
                                 >
                                     Board
@@ -191,8 +191,8 @@ const createTaskMutation = useMutation({
                                     onClick={() => setActiveTab("analytics")}
                                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                                         activeTab === "analytics"
-                                            ? "bg-white text-gray-900 shadow-sm"
-                                            : "text-gray-500 hover:text-gray-700"
+                                            ? "bg-white/5 backdrop-blur-md border border-white/10 text-white text-white shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
                                     }`}
                                 >
                                     Analytics
@@ -201,8 +201,8 @@ const createTaskMutation = useMutation({
                                     onClick={() => setActiveTab("members")}
                                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                                         activeTab === "members"
-                                            ? "bg-white text-gray-900 shadow-sm"
-                                            : "text-gray-500 hover:text-gray-700"
+                                            ? "bg-white/5 backdrop-blur-md border border-white/10 text-white text-white shadow-sm"
+                                            : "text-slate-400 hover:text-slate-200"
                                     }`}
                                 >
                                     Members
@@ -211,7 +211,7 @@ const createTaskMutation = useMutation({
                             {activeTab === "board" && (
                                 <button
                                     onClick={() => setIsCreateModalOpen(true)}
-                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+                                    className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all"
                                 >
                                     <svg
                                         className="w-5 h-5 mr-2"
@@ -249,22 +249,22 @@ const createTaskMutation = useMutation({
                     />
                 ) : isLoading ? (
                     <div className="flex items-center justify-center h-64">
-                        <div className="text-gray-500">Loading tasks...</div>
+                        <div className="text-slate-400">Loading tasks...</div>
                     </div>
                 ) : (
                     <>
-                        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-4">
+                        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md border border-white/10 text-white p-4">
                             <input
                                 type="search"
                                 value={titleFilter}
                                 onChange={(event) => setTitleFilter(event.target.value)}
                                 placeholder="Search task titles"
-                                className="min-w-52 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                className="min-w-52 flex-1 rounded-md border border-white/10 px-3 py-2 text-sm"
                             />
                             <select
                                 value={assigneeFilter}
                                 onChange={(event) => setAssigneeFilter(event.target.value)}
-                                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                className="rounded-md border border-white/10 px-3 py-2 text-sm"
                             >
                                 <option value="all">All assignees</option>
                                 {project?.members.map((member) => (
@@ -273,7 +273,7 @@ const createTaskMutation = useMutation({
                                     </option>
                                 ))}
                             </select>
-                            <div className="flex items-center gap-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-3 text-sm text-slate-300">
                                 {(["low", "medium", "high"] as const).map((priority) => (
                                     <label key={priority} className="inline-flex items-center gap-1 capitalize">
                                         <input
@@ -293,18 +293,18 @@ const createTaskMutation = useMutation({
                                         setAssigneeFilter("all");
                                         setPriorityFilters(new Set());
                                     }}
-                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    className="text-sm font-medium text-indigo-400 hover:text-indigo-300"
                                 >
                                     Clear filters
                                 </button>
                             )}
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="bg-gray-100 rounded-lg p-4">
+                        <div className="bg-white/5 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="font-semibold text-gray-900">
+                                <h2 className="font-semibold text-white">
                                     To Do
-                                    <span className="ml-2 text-sm text-gray-500">({todoTasks.length})</span>
+                                    <span className="ml-2 text-sm text-slate-400">({todoTasks.length})</span>
                                 </h2>
                             </div>
                             <div className="space-y-3">
@@ -317,18 +317,18 @@ const createTaskMutation = useMutation({
                                     />
                                 ))}
                                 {todoTasks.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                    <div className="text-center py-8 text-slate-500 text-sm">
                                         No tasks yet
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="bg-blue-50 rounded-lg p-4">
+                        <div className="bg-blue-900/20 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="font-semibold text-gray-900">
+                                <h2 className="font-semibold text-white">
                                     In Progress
-                                    <span className="ml-2 text-sm text-gray-500">({inProgressTasks.length})</span>
+                                    <span className="ml-2 text-sm text-slate-400">({inProgressTasks.length})</span>
                                 </h2>
                             </div>
                             <div className="space-y-3">
@@ -341,18 +341,18 @@ const createTaskMutation = useMutation({
                                     />
                                 ))}
                                 {inProgressTasks.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                    <div className="text-center py-8 text-slate-500 text-sm">
                                         No tasks in progress
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="bg-green-50 rounded-lg p-4">
+                        <div className="bg-emerald-900/20 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="font-semibold text-gray-900">
+                                <h2 className="font-semibold text-white">
                                     Done
-                                    <span className="ml-2 text-sm text-gray-500">({doneTasks.length})</span>
+                                    <span className="ml-2 text-sm text-slate-400">({doneTasks.length})</span>
                                 </h2>
                             </div>
                             <div className="space-y-3">
@@ -365,7 +365,7 @@ const createTaskMutation = useMutation({
                                     />
                                 ))}
                                 {doneTasks.length === 0 && (
-                                    <div className="text-center py-8 text-gray-400 text-sm">
+                                    <div className="text-center py-8 text-slate-500 text-sm">
                                         No completed tasks
                                     </div>
                                 )}

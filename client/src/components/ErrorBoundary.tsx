@@ -25,18 +25,18 @@ export class ErrorBoundary extends Component<Props, State> {
     public render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-                    <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
+                <div className="min-h-screen flex items-center justify-center bg-transparent p-4">
+                    <div className="max-w-md w-full bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-md p-6 text-center">
                         <svg className="mx-auto h-12 w-12 text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
-                        <h2 className="text-lg font-semibold text-gray-900 mb-2">Something went wrong</h2>
-                        <p className="text-sm text-gray-600 mb-6">
+                        <h2 className="text-lg font-semibold text-white mb-2">Something went wrong</h2>
+                        <p className="text-sm text-slate-300 mb-6">
                             {this.state.error?.message || "An unexpected error occurred."}
                         </p>
                         <button
                             onClick={() => window.location.reload()}
-                            className="w-full inline-flex justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none"
+                            className="w-full inline-flex justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all focus:outline-none"
                         >
                             Refresh Page
                         </button>
