@@ -30,6 +30,7 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ token: null, user: null });
+        import("../socket/socket").then((m) => m.disconnectSocket());
       },
 
       isAuthenticated: () => {

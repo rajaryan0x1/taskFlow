@@ -2,6 +2,7 @@ import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "../stores/authStore";
 
 let socket: Socket | null = null;
+let currentProjectId: string | null = null;
 
 export const initSocket = (): Socket => {
   const { token } = useAuthStore.getState();
@@ -29,6 +30,9 @@ export const initSocket = (): Socket => {
 
   socket.on("connect", () => {
     console.log("[socket.io] connected:", socket?.id);
+    if (currentProjectId) {
+      socket?.emit("project:join", currentProjectId);
+    }
   });
 
   socket.on("disconnect", (reason) => {
@@ -54,6 +58,7 @@ export const disconnectSocket = (): void => {
 };
 
 export const joinProject = (projectId: string): void => {
+  currentProjectId = projectId;
   const sock = getSocket();
   if (sock?.connected) {
     sock.emit("project:join", projectId);
@@ -65,6 +70,9 @@ export const joinProject = (projectId: string): void => {
 };
 
 export const leaveProject = (projectId: string): void => {
+  if (currentProjectId === projectId) {
+    currentProjectId = null;
+  }
   const sock = getSocket();
   if (sock?.connected) {
     sock.emit("project:leave", projectId);
