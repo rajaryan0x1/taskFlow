@@ -29,7 +29,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 && window.location.pathname !== "/login" && window.location.pathname !== "/register") {
             // Token expired or invalid - logout user
             useAuthStore.getState().logout();
             window.location.href = "/login";

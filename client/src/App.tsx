@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
+import api from "./api/axios";
 import LoginPage from "./pages/Login";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashBoardPage";
@@ -17,6 +19,33 @@ const ProtectedRoute = () => {
 };
 
 function App() {
+  const token = useAuthStore((state) => state.token);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  useEffect(() => {
+    if (token) {
+      api.get("/auth/me")
+        .then((res) => {
+          if (res.data.user) {
+            setAuth(token, res.data.user);
+          }
+        })
+        .catch(() => {
+          // 401 will be handled by interceptor
+        })
+        .finally(() => {
+          setIsVerifying(false);
+        });
+    } else {
+      setIsVerifying(false);
+    }
+  }, []);
+
+  if (isVerifying) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
+
   return (
     <Routes>
       {/* Public routes */}
