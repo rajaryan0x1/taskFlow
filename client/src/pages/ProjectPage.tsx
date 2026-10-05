@@ -82,7 +82,22 @@ const ProjectPage = () => {
         enabled: !!projectId,
     });
 
-    const createTaskMutation = useMutation({
+    
+    const updateTaskStatusMutation = useMutation({
+        mutationFn: async (data: { taskId: string; status: "todo" | "in_progress" | "done" }) => {
+            const response = await api.patch(`/projects/${projectId}/tasks/${data.taskId}`, { status: data.status });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+        },
+    });
+
+    const handleTaskDrop = (taskId: string, newStatus: "todo" | "in_progress" | "done") => {
+        // Optimistic update could be added here
+        updateTaskStatusMutation.mutate({ taskId, status: newStatus });
+    };
+const createTaskMutation = useMutation({
         mutationFn: async (data: {
             title: string;
             description?: string;

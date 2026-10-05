@@ -20,6 +20,11 @@ export const getPriorityColor = (priority: string) => {
 
 export const TaskCard = ({ task, onClick }: TaskCardProps) => (
     <div
+        draggable
+        onDragStart={(e) => {
+            e.dataTransfer.setData("taskId", task._id);
+            e.dataTransfer.effectAllowed = "move";
+        }}
         onClick={onClick}
         className="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
     >
