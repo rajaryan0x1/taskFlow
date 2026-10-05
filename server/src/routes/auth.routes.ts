@@ -1,5 +1,5 @@
 import { Router } from "express";
-import type { Request, Response } from "express";
+import type { Request, Response, NextFunction } from "express";
 import zod from "zod";
 import rateLimit from "express-rate-limit";
 import User from "../models/User.js";
@@ -22,12 +22,12 @@ const registerSchema = zod.object({
   firstName: zod.string().min(2).max(30),
   lastName: zod.string().min(2).max(30),
   username: zod.string().min(3).max(20),
-  email: zod.string().email(),
+  email: zod.string().email().toLowerCase().trim(),
   password: zod.string().min(6),
 });
 
 const loginSchema = zod.object({
-  email: zod.string().email(),
+  email: zod.string().email().toLowerCase().trim(),
   password: zod.string().min(1, "Password is required"),
 });
 
@@ -41,7 +41,7 @@ function signToken(userId: string, role: "app_admin" | "user"): string {
 // ─── Routes 
 
 // POST /auth/register
-router.post("/register", authLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post("/register", authLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const parseResult = registerSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -54,17 +54,6 @@ router.post("/register", authLimiter, async (req: Request, res: Response): Promi
 
     const { firstName, lastName, username, email, password } =
       parseResult.data;
-
-    // Check for existing user by email OR username in one round trip
-    const existingUser = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-
-    if (existingUser) {
-      const field = existingUser.email === email ? "email" : "username";
-      res.status(409).json({ message: `A user with that ${field} already exists` });
-      return;
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -92,13 +81,12 @@ router.post("/register", authLimiter, async (req: Request, res: Response): Promi
       },
     });
   } catch (err) {
-    console.error("[register]", err);
-    res.status(500).json({ message: "Internal server error" });
+    next(err);
   }
 });
 
 // POST /auth/login
-router.post("/login", authLimiter, async (req: Request, res: Response): Promise<void> => {
+router.post("/login", authLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const parseResult = loginSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -111,7 +99,7 @@ router.post("/login", authLimiter, async (req: Request, res: Response): Promise<
 
     const { email, password } = parseResult.data;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
 
     // Dummy hash prevents timing attacks — bcrypt.compare always runs
     const DUMMY_HASH =
@@ -140,8 +128,7 @@ router.post("/login", authLimiter, async (req: Request, res: Response): Promise<
       },
     });
   } catch (err) {
-    console.error("[login]", err);
-    res.status(500).json({ message: "Internal server error" });
+    next(err);
   }
 });
 
@@ -156,10 +143,11 @@ router.post("/logout", (_req: Request, res: Response): void => {
 router.get(
   "/me",
   authMiddleware,
-  async (req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Re-fetch from DB to get fresh data
-      const user = await User.findById(req.user!.id).select("-password");
+      // select("-password") is redundant since it's select:false by default, but keeping it is fine
+      const user = await User.findById(req.user!.id);
 
       if (!user) {
         res.status(404).json({ message: "User not found" });
@@ -168,8 +156,7 @@ router.get(
 
       res.status(200).json({ user });
     } catch (err) {
-      console.error("[me]", err);
-      res.status(500).json({ message: "Internal server error" });
+      next(err);
     }
   }
 );
