@@ -250,13 +250,6 @@ export const removeMember = asyncHandler(
     }
     const project = req.projectMembership!.project;
 
-    // Can't remove the owner
-    if (project.owner.toString() === userId) {
-      throw ApiError.badRequest(
-        "Cannot remove the owner. Transfer ownership first."
-      );
-    }
-
     // Find the member
     const memberIndex = project.members.findIndex(
       (m) => m.user.toString() === userId
@@ -264,6 +257,18 @@ export const removeMember = asyncHandler(
 
     if (memberIndex === -1) {
       throw ApiError.notFound("Member not found in this project");
+    }
+
+    const targetMember = project.members[memberIndex];
+    const actorRole = req.projectMembership!.role;
+
+    if (project.owner.toString() === userId) {
+      throw ApiError.badRequest("Cannot remove the owner. Transfer ownership first.");
+    }
+
+    const { canManageRole } = await import("../types/roles.js");
+    if (!canManageRole(actorRole, targetMember!.role)) {
+      throw ApiError.forbidden("You cannot remove a member with an equal or higher role");
     }
 
     // Remove member
@@ -348,6 +353,85 @@ export const restoreProject = asyncHandler(
       success: true,
       message: "Project restored successfully",
       data: project,
+    });
+  }
+);
+
+export const changeMemberRole = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const { userId } = req.params;
+    const { role: newRole } = req.body;
+
+    if (!userId || typeof userId !== "string") {
+      throw ApiError.badRequest("User ID is required");
+    }
+
+    if (!Object.values(ProjectRole).includes(newRole)) {
+      throw ApiError.badRequest("Invalid role");
+    }
+
+    if (newRole === ProjectRole.OWNER) {
+      throw ApiError.badRequest("Use the transfer ownership endpoint to assign an owner");
+    }
+
+    const project = req.projectMembership!.project;
+    const actorRole = req.projectMembership!.role;
+
+    const member = project.members.find((m) => m.user.toString() === userId);
+    if (!member) {
+      throw ApiError.notFound("Member not found in this project");
+    }
+
+    if (member.role === ProjectRole.OWNER) {
+      throw ApiError.badRequest("Cannot change the role of the owner");
+    }
+
+    const { canManageRole } = await import("../types/roles.js");
+    if (!canManageRole(actorRole, member.role)) {
+      throw ApiError.forbidden("You cannot modify the role of a member with an equal or higher role");
+    }
+
+    if (!canManageRole(actorRole, newRole)) {
+      throw ApiError.forbidden("You cannot assign a role equal to or higher than your own");
+    }
+
+    member.role = newRole;
+    await project.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Member role updated successfully",
+      data: project,
+    });
+  }
+);
+
+export const leaveProject = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const project = req.projectMembership!.project;
+    const userId = req.user!.id;
+
+    if (project.owner.toString() === userId) {
+      throw ApiError.badRequest("Owner cannot leave the project. Transfer ownership or delete the project.");
+    }
+
+    const memberIndex = project.members.findIndex((m) => m.user.toString() === userId);
+    if (memberIndex === -1) {
+      throw ApiError.badRequest("You are not a member of this project");
+    }
+
+    project.members.splice(memberIndex, 1);
+    await project.save();
+
+    const io = req.app.locals.io;
+    if (io) {
+      const { broadcastMemberRemoved } = await import("../sockets/task.socket.js");
+      broadcastMemberRemoved(io, project._id.toString(), userId);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "You have left the project",
     });
   }
 );

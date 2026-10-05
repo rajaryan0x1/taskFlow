@@ -1,4 +1,3 @@
-
 // Project level Role
 export enum ProjectRole {
     OWNER = "owner",
@@ -7,17 +6,10 @@ export enum ProjectRole {
 }
 
 // App level Role
-
 export enum AppRole {
     APP_ADMIN = "app_admin",
     USER = "user"
 }
-
-// export const ProjectRoleHierarchy: Record<ProjectRole, number> = {
-//     [ProjectRole.OWNER]: 3,
-//     [ProjectRole.ADMIN]: 2,
-//     [ProjectRole.MEMBER]: 1
-// };
 
 export const PROJECT_ROLE_HIERARCHY: ProjectRole[] = [
   ProjectRole.MEMBER,
@@ -25,13 +17,19 @@ export const PROJECT_ROLE_HIERARCHY: ProjectRole[] = [
   ProjectRole.OWNER,
 ];
 
+export const canManageRole = (actorRole: ProjectRole, targetRole: ProjectRole): boolean => {
+    const actorIndex = PROJECT_ROLE_HIERARCHY.indexOf(actorRole);
+    const targetIndex = PROJECT_ROLE_HIERARCHY.indexOf(targetRole);
+    return actorIndex > targetIndex;
+};
+
 export const PERMISSIONS = {
   // Project
   PROJECT_DELETE:              [ProjectRole.OWNER],
   PROJECT_UPDATE:              [ProjectRole.OWNER, ProjectRole.ADMIN],
   PROJECT_INVITE_MEMBER:       [ProjectRole.OWNER, ProjectRole.ADMIN],
   PROJECT_REMOVE_MEMBER:       [ProjectRole.OWNER, ProjectRole.ADMIN],
-  PROJECT_CHANGE_MEMBER_ROLE:  [ProjectRole.OWNER],
+  PROJECT_CHANGE_MEMBER_ROLE:  [ProjectRole.OWNER, ProjectRole.ADMIN],
   PROJECT_TRANSFER_OWNERSHIP:  [ProjectRole.OWNER],
 
   // Task

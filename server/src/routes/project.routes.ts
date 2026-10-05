@@ -15,6 +15,8 @@ import {
     removeMember,
     transferOwnership,
     restoreProject,
+    changeMemberRole,
+    leaveProject,
 } from "../controllers/project.controller.js";
 
 import analyticsRoutes from "./analytics.routes.js";
@@ -95,6 +97,24 @@ router.post(
     requireArchivedProjectAccess,
     requirePermission("PROJECT_TRANSFER_OWNERSHIP"),
     transferOwnership
+);
+
+
+// Change a member's role (owner or admin)
+router.patch(
+    "/:projectId/members/:userId/role",
+    authMiddleware,
+    requireProjectAccess,
+    requirePermission("PROJECT_CHANGE_MEMBER_ROLE"),
+    changeMemberRole
+);
+
+// Leave project (any member)
+router.delete(
+    "/:projectId/leave",
+    authMiddleware,
+    requireProjectAccess,
+    leaveProject
 );
 
 // Added analytics routes (MongoDB aggregation pipelines) :)
