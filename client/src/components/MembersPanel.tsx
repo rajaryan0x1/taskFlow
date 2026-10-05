@@ -32,6 +32,13 @@ interface MembersPanelProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+
+const getRoleValue = (role: string) => {
+    if (role === "owner") return 3;
+    if (role === "admin") return 2;
+    return 1;
+};
+
 const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps) => {
     const currentUser = useAuthStore((state) => state.user);
     const canManage = currentUserRole === "owner" || currentUserRole === "admin";
@@ -226,7 +233,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                     {members.map((member) => {
                         const isCurrentUser = member.user._id === currentUser?.id;
                         const isOwner = member.role === "owner";
-                        const canRemove = canManage && !isOwner && !isCurrentUser;
+                        const canRemove = canManage && !isOwner && !isCurrentUser && getRoleValue(currentUserRole) > getRoleValue(member.role);
                         const canTransferOwnership = currentUserRole === "owner" && !isOwner && !isCurrentUser;
 
                         return (
