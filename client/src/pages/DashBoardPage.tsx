@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
 import { queryClient } from "../api/queryClient";
+import NotificationBell from "../components/NotificationBell";
 
 interface Project {
     _id: string;
@@ -76,6 +77,7 @@ const DashboardPage = () => {
                             <h1 className="text-2xl font-bold text-gray-900">TaskFlow</h1>
                         </div>
                         <div className="flex items-center gap-4">
+                            <NotificationBell />
                             <div className="text-sm text-gray-600">
                                 Welcome, <span className="font-medium text-gray-900">{user?.firstName}</span>
                             </div>

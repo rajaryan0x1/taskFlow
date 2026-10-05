@@ -4,6 +4,7 @@ import authRoutes  from './auth.routes.js';
 import projectRoutes from "./project.routes.js"
 import taskRoutes , { projectTaskRoutes } from "./task.routes.js"
 import userRoutes from "./user.routes.js"
+import notificationRoutes from "./notification.routes.js";
 const router = Router();
 
 
@@ -15,5 +16,6 @@ router.use("/tasks" , taskRoutes)
 router.use("/projects/:projectId/tasks" , projectTaskRoutes)
 
 router.use("/users" , userRoutes)
+router.use("/notifications", notificationRoutes)
 
 export default router;

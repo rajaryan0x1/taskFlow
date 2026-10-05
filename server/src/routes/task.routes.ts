@@ -13,6 +13,10 @@ import {
     updateTask,
     deleteTask,
     assignTask,
+    getTaskComments,
+    createTaskComment,
+    deleteTaskComment,
+    getTaskActivity,
 } from "../controllers/task.controller.js";
 
 const router = Router();
@@ -64,6 +68,35 @@ projectTaskRoutes.patch(
     requireProjectAccess,
     requirePermission("TASK_UPDATE_ANY"),
     assignTask
+);
+
+projectTaskRoutes.get(
+    "/:taskId/comments",
+    authMiddleware,
+    requireProjectAccess,
+    getTaskComments
+);
+
+projectTaskRoutes.get(
+    "/:taskId/activity",
+    authMiddleware,
+    requireProjectAccess,
+    getTaskActivity
+);
+
+projectTaskRoutes.post(
+    "/:taskId/comments",
+    authMiddleware,
+    requireProjectAccess,
+    requirePermission("COMMENT_SEND"),
+    createTaskComment
+);
+
+projectTaskRoutes.delete(
+    "/:taskId/comments/:commentId",
+    authMiddleware,
+    requireProjectAccess,
+    deleteTaskComment
 );
 
 export default router;

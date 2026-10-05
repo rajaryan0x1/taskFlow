@@ -5,6 +5,12 @@ import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { ProjectRole } from "../types/roles.js";
+import {
+  broadcastMemberAdded,
+  broadcastMemberRemoved,
+  broadcastOwnershipTransferred,
+} from "../sockets/task.socket.js";
+import { createNotification } from "../utils/notifications.js";
 
 //  Validation Schema 
 
@@ -204,6 +210,18 @@ export const inviteMember = asyncHandler(
       .populate("owner", "firstName lastName email username")
       .populate("members.user", "firstName lastName email username");
 
+    const io = req.app.locals.io;
+    if (io && updatedProject) {
+      const addedMember = updatedProject.members.find(
+        (member) => member.user.toString() === userId
+      );
+      if (addedMember) broadcastMemberAdded(io, project._id.toString(), addedMember);
+    }
+    await createNotification(io, userId, "member_invited", {
+      projectId: project._id.toString(),
+      projectName: project.name,
+    });
+
     res.status(200).json({
       success: true,
       message: "Member invited successfully",
@@ -216,6 +234,9 @@ export const inviteMember = asyncHandler(
 export const removeMember = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const { userId } = req.params;
+    if (!userId || typeof userId !== "string") {
+      throw ApiError.badRequest("User ID is required");
+    }
     const project = req.projectMembership!.project;
 
     // Can't remove the owner
@@ -237,6 +258,9 @@ export const removeMember = asyncHandler(
     // Remove member
     project.members.splice(memberIndex, 1);
     await project.save();
+
+    const io = req.app.locals.io;
+    if (io) broadcastMemberRemoved(io, project._id.toString(), userId);
 
     res.status(200).json({
       success: true,
@@ -287,6 +311,11 @@ export const transferOwnership = asyncHandler(
     const updatedProject = await Project.findById(project._id)
       .populate("owner", "firstName lastName email username")
       .populate("members.user", "firstName lastName email username");
+
+    const io = req.app.locals.io;
+    if (io) {
+      broadcastOwnershipTransferred(io, project._id.toString(), newOwnerId);
+    }
 
     res.status(200).json({
       success: true,

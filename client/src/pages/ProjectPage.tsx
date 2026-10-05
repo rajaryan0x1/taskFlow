@@ -8,6 +8,7 @@ import TaskEditModal from "../components/TaskEditModal";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import MembersPanel from "../components/MembersPanel";
 import { useAuthStore } from "../stores/authStore";
+import NotificationBell from "../components/NotificationBell";
 
 interface Task {
     _id: string;
@@ -57,6 +58,9 @@ const ProjectPage = () => {
     const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">("medium");
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<"board" | "analytics" | "members">("board");
+    const [titleFilter, setTitleFilter] = useState("");
+    const [assigneeFilter, setAssigneeFilter] = useState("all");
+    const [priorityFilters, setPriorityFilters] = useState<Set<Task["priority"]>>(new Set());
 
     const { data: project } = useQuery({
         queryKey: ["project", projectId],
@@ -128,13 +132,26 @@ const ProjectPage = () => {
             });
         };
 
+        const handleMembershipChanged = () => {
+            queryClient.invalidateQueries({
+                queryKey: ["project", projectId],
+                refetchType: "active",
+            });
+        };
+
         socket.off("task:created");
         socket.off("task:updated");
         socket.off("task:deleted");
+        socket.off("member:added");
+        socket.off("member:removed");
+        socket.off("member:ownership-transferred");
 
         socket.on("task:created", handleTaskCreated);
         socket.on("task:updated", handleTaskUpdated);
         socket.on("task:deleted", handleTaskDeleted);
+        socket.on("member:added", handleMembershipChanged);
+        socket.on("member:removed", handleMembershipChanged);
+        socket.on("member:ownership-transferred", handleMembershipChanged);
 
         const performJoin = () => {
             joinProject(projectId);
@@ -152,6 +169,9 @@ const ProjectPage = () => {
                 socket.off("task:created", handleTaskCreated);
                 socket.off("task:updated", handleTaskUpdated);
                 socket.off("task:deleted", handleTaskDeleted);
+                socket.off("member:added", handleMembershipChanged);
+                socket.off("member:removed", handleMembershipChanged);
+                socket.off("member:ownership-transferred", handleMembershipChanged);
             }
         };
     }, [projectId]);
@@ -181,9 +201,28 @@ const ProjectPage = () => {
         }
     };
 
-    const todoTasks = tasks?.filter((t) => t.status === "todo") || [];
-    const inProgressTasks = tasks?.filter((t) => t.status === "in_progress") || [];
-    const doneTasks = tasks?.filter((t) => t.status === "done") || [];
+    const filteredTasks = (tasks ?? [])
+        .filter((task) => task.title.toLowerCase().includes(titleFilter.toLowerCase()))
+        .filter((task) => assigneeFilter === "all" || task.assignee?._id === assigneeFilter)
+        .filter((task) => priorityFilters.size === 0 || priorityFilters.has(task.priority))
+        .sort((first, second) => {
+            const firstOverdue = first.status !== "done" && !!first.dueDate && new Date(first.dueDate).getTime() < Date.now();
+            const secondOverdue = second.status !== "done" && !!second.dueDate && new Date(second.dueDate).getTime() < Date.now();
+            return Number(secondOverdue) - Number(firstOverdue);
+        });
+
+    const todoTasks = filteredTasks.filter((t) => t.status === "todo");
+    const inProgressTasks = filteredTasks.filter((t) => t.status === "in_progress");
+    const doneTasks = filteredTasks.filter((t) => t.status === "done");
+
+    const togglePriorityFilter = (priority: Task["priority"]) => {
+        setPriorityFilters((current) => {
+            const next = new Set(current);
+            if (next.has(priority)) next.delete(priority);
+            else next.add(priority);
+            return next;
+        });
+    };
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -217,6 +256,7 @@ const ProjectPage = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
+                            <NotificationBell />
                             <div className="flex bg-gray-100 rounded-lg p-0.5">
                                 <button
                                     onClick={() => setActiveTab("board")}
@@ -293,7 +333,54 @@ const ProjectPage = () => {
                         <div className="text-gray-500">Loading tasks...</div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <>
+                        <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-4">
+                            <input
+                                type="search"
+                                value={titleFilter}
+                                onChange={(event) => setTitleFilter(event.target.value)}
+                                placeholder="Search task titles"
+                                className="min-w-52 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                            />
+                            <select
+                                value={assigneeFilter}
+                                onChange={(event) => setAssigneeFilter(event.target.value)}
+                                className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                            >
+                                <option value="all">All assignees</option>
+                                {project?.members.map((member) => (
+                                    <option key={member.user._id} value={member.user._id}>
+                                        {member.user.firstName} {member.user.lastName}
+                                    </option>
+                                ))}
+                            </select>
+                            <div className="flex items-center gap-3 text-sm text-gray-600">
+                                {(["low", "medium", "high"] as const).map((priority) => (
+                                    <label key={priority} className="inline-flex items-center gap-1 capitalize">
+                                        <input
+                                            type="checkbox"
+                                            checked={priorityFilters.has(priority)}
+                                            onChange={() => togglePriorityFilter(priority)}
+                                        />
+                                        {priority}
+                                    </label>
+                                ))}
+                            </div>
+                            {(titleFilter || assigneeFilter !== "all" || priorityFilters.size > 0) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setTitleFilter("");
+                                        setAssigneeFilter("all");
+                                        setPriorityFilters(new Set());
+                                    }}
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                                >
+                                    Clear filters
+                                </button>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="bg-gray-100 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="font-semibold text-gray-900">
@@ -365,7 +452,8 @@ const ProjectPage = () => {
                                 )}
                             </div>
                         </div>
-                    </div>
+                        </div>
+                    </>
                 )}
             </main>
 
@@ -501,6 +589,16 @@ const TaskCard = ({
             </div>
             {task.description && (
                 <p className="text-xs text-gray-600 mb-3 line-clamp-2">{task.description}</p>
+            )}
+            {task.dueDate && (
+                <div className={`mb-3 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${
+                    task.status !== "done" && new Date(task.dueDate).getTime() < Date.now()
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-600"
+                }`}>
+                    <span aria-hidden="true">{task.status !== "done" && new Date(task.dueDate).getTime() < Date.now() ? "!" : ""}</span>
+                    {task.status !== "done" && new Date(task.dueDate).getTime() < Date.now() ? "Overdue" : `Due ${new Date(task.dueDate).toLocaleDateString()}`}
+                </div>
             )}
             <div className="flex items-center justify-between">
                 {task.assignee ? (

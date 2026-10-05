@@ -7,7 +7,16 @@ import { ProjectRole } from "../types/roles.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { Types } from "mongoose";
-import { broadcastTaskCreate, broadcastTaskDelete, broadcastTaskUpdate } from "../sockets/task.socket.js";
+import {
+    broadcastActivityCreated,
+    broadcastTaskCreate,
+    broadcastTaskDelete,
+    broadcastTaskUpdate,
+} from "../sockets/task.socket.js";
+import { createNotification } from "../utils/notifications.js";
+import { Comment } from "../models/Comment.js";
+import { Activity, type ActivityType, type IActivity } from "../models/Activity.js";
+import { broadcastCommentCreated, broadcastCommentDeleted } from "../sockets/task.socket.js";
 
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
@@ -41,6 +50,23 @@ const updateTaskSchema = zod.object({
 const assignTaskSchema = zod.object({
     assignee: zod.string(), // Can be empty string to unassign
 });
+
+const createCommentSchema = zod.object({
+    body: zod.string().trim().min(1).max(2000),
+});
+
+const logActivity = async (
+    projectId: Types.ObjectId | string,
+    taskId: Types.ObjectId | string,
+    actorId: string,
+    type: ActivityType,
+    meta: Record<string, unknown> = {},
+    io?: any
+): Promise<IActivity> => {
+    const activity = await Activity.create({ project: projectId, task: taskId, actor: actorId, type, meta });
+    if (io) broadcastActivityCreated(io, projectId.toString(), activity);
+    return activity;
+};
 
 const queryFilterSchema = zod.object({
     status: zod
@@ -106,6 +132,7 @@ export const createTask = asyncHandler(
             ...(dueDate && { dueDate: new Date(dueDate) }),
             createdBy: req.user!.id,
         });
+        await logActivity(projectId, task._id, req.user!.id, "created", {}, req.app.locals.io);
 
         const populatedTask = await Task.findById(task._id)
             .populate("project", "name")
@@ -233,6 +260,8 @@ export const updateTask = asyncHandler(
         }
 
         const userRole = req.projectMembership!.role;
+        const previousStatus = task.status;
+        const previousAssignee = task.assignee?.toString() ?? null;
 
         // Members can only update tasks assigned to them
         if (userRole === ProjectRole.MEMBER) {
@@ -273,6 +302,25 @@ export const updateTask = asyncHandler(
         }
 
         await task.save();
+
+        if (updates.status !== undefined && updates.status !== previousStatus) {
+            await logActivity(task.project, task._id, req.user!.id, "status_changed", {
+                from: previousStatus,
+                to: updates.status,
+            }, req.app.locals.io);
+        }
+        if (updates.assignee !== undefined && (updates.assignee || null) !== previousAssignee) {
+            await logActivity(task.project, task._id, req.user!.id, "assigned", {
+                assignee: updates.assignee || null,
+            }, req.app.locals.io);
+            if (updates.assignee) {
+                await createNotification(req.app.locals.io, updates.assignee, "task_assigned", {
+                    taskId: task._id.toString(),
+                    taskTitle: task.title,
+                    projectId: task.project.toString(),
+                });
+            }
+        }
 
         const updatedTask = await Task.findById(task._id)
             .populate("project", "name")
@@ -409,6 +457,17 @@ export const assignTask = asyncHandler(
 
         await task.save();
 
+        await logActivity(task.project, task._id, req.user!.id, "assigned", {
+            assignee: assignee || null,
+        }, req.app.locals.io);
+        if (assignee) {
+            await createNotification(req.app.locals.io, assignee, "task_assigned", {
+                taskId: task._id.toString(),
+                taskTitle: task.title,
+                projectId: task.project.toString(),
+            });
+        }
+
         const updatedTask = await Task.findById(task._id)
             .populate("project", "name")
             .populate("assignee", "firstName lastName email username")
@@ -419,5 +478,114 @@ export const assignTask = asyncHandler(
             message: assignee === "" ? "Task unassigned" : "Task assigned successfully",
             data: updatedTask,
         });
+    }
+);
+
+export const getTaskComments = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+        const { taskId } = req.params;
+        if (!taskId || typeof taskId !== "string" || !Types.ObjectId.isValid(taskId)) {
+            throw ApiError.badRequest("Invalid task ID");
+        }
+
+        const task = await Task.findById(taskId).select("project");
+        if (!task) throw ApiError.notFound("Task not found");
+        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
+            throw ApiError.forbidden("You don't have access to this task");
+        }
+
+        const comments = await Comment.find({ task: taskId })
+            .populate("author", "firstName lastName username")
+            .sort({ createdAt: 1 });
+
+        res.status(200).json({ success: true, data: comments });
+    }
+);
+
+export const createTaskComment = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+        const { taskId } = req.params;
+        if (!taskId || typeof taskId !== "string" || !Types.ObjectId.isValid(taskId)) {
+            throw ApiError.badRequest("Invalid task ID");
+        }
+
+        const parseResult = createCommentSchema.safeParse(req.body);
+        if (!parseResult.success) {
+            throw ApiError.badRequest(parseResult.error.issues.map((issue) => issue.message).join(", "));
+        }
+
+        const task = await Task.findById(taskId).select("project");
+        if (!task) throw ApiError.notFound("Task not found");
+        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
+            throw ApiError.forbidden("You don't have access to this task");
+        }
+
+        const comment = await Comment.create({
+            task: taskId,
+            author: req.user!.id,
+            body: parseResult.data.body,
+        });
+        await logActivity(task.project, task._id, req.user!.id, "commented", {}, req.app.locals.io);
+        const populatedComment = await Comment.findById(comment._id)
+            .populate("author", "firstName lastName username");
+
+        const io = req.app.locals.io;
+        if (io) broadcastCommentCreated(io, req.projectMembership!.project._id.toString(), populatedComment);
+
+        res.status(201).json({ success: true, data: populatedComment });
+    }
+);
+
+export const deleteTaskComment = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+        const { taskId, commentId } = req.params;
+        if (
+            !taskId || typeof taskId !== "string" || !Types.ObjectId.isValid(taskId) ||
+            !commentId || typeof commentId !== "string" || !Types.ObjectId.isValid(commentId)
+        ) {
+            throw ApiError.badRequest("Invalid task or comment ID");
+        }
+
+        const task = await Task.findById(taskId).select("project");
+        if (!task) throw ApiError.notFound("Task not found");
+        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
+            throw ApiError.forbidden("You don't have access to this task");
+        }
+
+        const comment = await Comment.findOne({ _id: commentId, task: taskId });
+        if (!comment) throw ApiError.notFound("Comment not found");
+
+        const canDeleteAny = req.projectMembership!.role === ProjectRole.OWNER ||
+            req.projectMembership!.role === ProjectRole.ADMIN;
+        if (!canDeleteAny && comment.author.toString() !== req.user!.id) {
+            throw ApiError.forbidden("You can only delete your own comments");
+        }
+
+        await comment.deleteOne();
+        const io = req.app.locals.io;
+        if (io) broadcastCommentDeleted(io, req.projectMembership!.project._id.toString(), commentId);
+
+        res.status(200).json({ success: true, message: "Comment deleted" });
+    }
+);
+
+export const getTaskActivity = asyncHandler(
+    async (req: Request, res: Response): Promise<void> => {
+        const { taskId } = req.params;
+        if (!taskId || typeof taskId !== "string" || !Types.ObjectId.isValid(taskId)) {
+            throw ApiError.badRequest("Invalid task ID");
+        }
+
+        const task = await Task.findById(taskId).select("project");
+        if (!task) throw ApiError.notFound("Task not found");
+        if (task.project.toString() !== req.projectMembership!.project._id.toString()) {
+            throw ApiError.forbidden("You don't have access to this task");
+        }
+
+        const activity = await Activity.find({ task: taskId })
+            .populate("actor", "firstName lastName username")
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({ success: true, data: activity });
     }
 );

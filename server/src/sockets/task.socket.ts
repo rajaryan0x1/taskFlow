@@ -46,6 +46,8 @@ export const initializeSocket = (httpServer: HTTPServer): SocketIOServer => {
     });
 
     io.on("connection", (socket: AuthenticatedSocket) => {
+        socket.join(`user:${socket.data.userId}`);
+
         socket.on("project:join", async (projectId: string) => {
             if (!projectId || typeof projectId !== "string" || !Types.ObjectId.isValid(projectId)) {
                 socket.emit("error", { message: "Invalid project ID" });
@@ -109,4 +111,55 @@ export const broadcastTaskDelete = (
 ): void => {
     const roomName = `project:${projectId}`;
     io.to(roomName).emit("task:deleted", { taskId });
+};
+
+export const broadcastMemberAdded = (
+    io: SocketIOServer,
+    projectId: string,
+    member: unknown
+): void => {
+    io.to(`project:${projectId}`).emit("member:added", { projectId, member });
+};
+
+export const broadcastMemberRemoved = (
+    io: SocketIOServer,
+    projectId: string,
+    userId: string
+): void => {
+    io.to(`project:${projectId}`).emit("member:removed", { projectId, userId });
+};
+
+export const broadcastOwnershipTransferred = (
+    io: SocketIOServer,
+    projectId: string,
+    newOwnerId: string
+): void => {
+    io.to(`project:${projectId}`).emit("member:ownership-transferred", {
+        projectId,
+        newOwnerId,
+    });
+};
+
+export const broadcastCommentCreated = (
+    io: SocketIOServer,
+    projectId: string,
+    comment: unknown
+): void => {
+    io.to(`project:${projectId}`).emit("comment:created", comment);
+};
+
+export const broadcastCommentDeleted = (
+    io: SocketIOServer,
+    projectId: string,
+    commentId: string
+): void => {
+    io.to(`project:${projectId}`).emit("comment:deleted", { commentId });
+};
+
+export const broadcastActivityCreated = (
+    io: SocketIOServer,
+    projectId: string,
+    activity: unknown
+): void => {
+    io.to(`project:${projectId}`).emit("activity:created", activity);
 };

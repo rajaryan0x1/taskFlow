@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
+import { getSocket } from "../socket/socket";
 
 interface Task {
     _id: string;
@@ -30,12 +31,79 @@ interface TaskEditModalProps {
     onClose: () => void;
 }
 
+interface Comment {
+    _id: string;
+    body: string;
+    createdAt: string;
+    author: { _id: string; firstName: string; lastName: string };
+}
+
+interface Activity {
+    _id: string;
+    type: "created" | "status_changed" | "assigned" | "commented";
+    meta: { from?: string; to?: string; assignee?: string | null };
+    createdAt: string;
+    actor: { _id: string; firstName: string; lastName: string };
+}
+
 const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditModalProps) => {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || "");
     const [status, setStatus] = useState(task.status);
     const [priority, setPriority] = useState(task.priority);
     const [assignee, setAssignee] = useState(task.assignee?._id || "");
+    const [commentBody, setCommentBody] = useState("");
+
+    const { data: comments = [] } = useQuery({
+        queryKey: ["comments", task._id],
+        queryFn: async () => {
+            const response = await api.get<{ data: Comment[] }>(`/projects/${projectId}/tasks/${task._id}/comments`);
+            return response.data.data;
+        },
+    });
+
+    const { data: activity = [] } = useQuery({
+        queryKey: ["activity", task._id],
+        queryFn: async () => {
+            const response = await api.get<{ data: Activity[] }>(`/projects/${projectId}/tasks/${task._id}/activity`);
+            return response.data.data;
+        },
+    });
+
+    const addCommentMutation = useMutation({
+        mutationFn: async (body: string) => {
+            const response = await api.post(`/projects/${projectId}/tasks/${task._id}/comments`, { body });
+            return response.data;
+        },
+        onSuccess: () => {
+            setCommentBody("");
+            queryClient.invalidateQueries({ queryKey: ["comments", task._id] });
+        },
+    });
+
+    const deleteCommentMutation = useMutation({
+        mutationFn: async (commentId: string) => {
+            await api.delete(`/projects/${projectId}/tasks/${task._id}/comments/${commentId}`);
+        },
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["comments", task._id] }),
+    });
+
+    useEffect(() => {
+        const socket = getSocket();
+        if (!socket) return;
+        const refreshComments = () => {
+            queryClient.invalidateQueries({ queryKey: ["comments", task._id] });
+            queryClient.invalidateQueries({ queryKey: ["activity", task._id] });
+        };
+        socket.on("comment:created", refreshComments);
+        socket.on("comment:deleted", refreshComments);
+        socket.on("activity:created", refreshComments);
+        return () => {
+            socket.off("comment:created", refreshComments);
+            socket.off("comment:deleted", refreshComments);
+            socket.off("activity:created", refreshComments);
+        };
+    }, [task._id]);
 
     const updateTaskMutation = useMutation({
         mutationFn: async (data: {
@@ -176,6 +244,72 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             </select>
                         </div>
                     </div>
+
+                    <section className="mt-6 border-t border-gray-200 pt-5">
+                        <h4 className="text-sm font-semibold text-gray-900">Comments</h4>
+                        <div className="mt-3 max-h-48 space-y-3 overflow-y-auto">
+                            {comments.length === 0 && <p className="text-sm text-gray-500">No comments yet.</p>}
+                            {comments.map((comment) => (
+                                <div key={comment._id} className="rounded-md bg-gray-50 p-3">
+                                    <div className="flex items-center justify-between text-xs text-gray-500">
+                                        <span className="font-medium text-gray-700">{comment.author.firstName} {comment.author.lastName}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => deleteCommentMutation.mutate(comment._id)}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <p className="mt-1 whitespace-pre-wrap text-sm text-gray-800">{comment.body}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <form
+                            className="mt-3 flex gap-2"
+                            onSubmit={(event) => {
+                                event.preventDefault();
+                                if (commentBody.trim()) addCommentMutation.mutate(commentBody.trim());
+                            }}
+                        >
+                            <input
+                                value={commentBody}
+                                onChange={(event) => setCommentBody(event.target.value)}
+                                maxLength={2000}
+                                placeholder="Add a comment"
+                                className="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                            />
+                            <button
+                                type="submit"
+                                disabled={addCommentMutation.isPending || !commentBody.trim()}
+                                className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                            >
+                                Add
+                            </button>
+                        </form>
+                    </section>
+
+                    <section className="mt-6 border-t border-gray-200 pt-5">
+                        <h4 className="text-sm font-semibold text-gray-900">Activity</h4>
+                        <div className="mt-3 space-y-2">
+                            {activity.length === 0 && <p className="text-sm text-gray-500">No activity yet.</p>}
+                            {activity.map((entry) => (
+                                <div key={entry._id} className="text-sm text-gray-600">
+                                    <span className="font-medium text-gray-800">
+                                        {entry.actor.firstName} {entry.actor.lastName}
+                                    </span>{" "}
+                                    {entry.type === "status_changed"
+                                        ? `changed status from ${entry.meta.from} to ${entry.meta.to}`
+                                        : entry.type === "assigned"
+                                            ? entry.meta.assignee ? "assigned the task" : "unassigned the task"
+                                            : entry.type === "commented" ? "commented on the task" : "created the task"}
+                                    <span className="ml-2 text-xs text-gray-400">
+                                        {new Date(entry.createdAt).toLocaleString()}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
 
                     {updateTaskMutation.isError && (
                         <div className="mt-4 bg-red-50 text-red-600 p-3 rounded text-sm">
