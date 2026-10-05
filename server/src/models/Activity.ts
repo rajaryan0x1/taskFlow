@@ -14,7 +14,7 @@ export interface IActivity extends Document {
 const ActivitySchema = new Schema<IActivity>(
   {
     project: { type: Schema.Types.ObjectId, ref: "Project", required: true, index: true },
-    task: { type: Schema.Types.ObjectId, ref: "Task", required: true, index: true },
+    task: { type: Schema.Types.ObjectId, ref: "Task", required: true },
     actor: { type: Schema.Types.ObjectId, ref: "User", required: true },
     type: {
       type: String,
