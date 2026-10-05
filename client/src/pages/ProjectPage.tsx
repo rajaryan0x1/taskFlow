@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
-import { initSocket, joinProject, leaveProject } from "../socket/socket";
+import { useProjectSocket } from "../hooks/useProjectSocket";
 import TaskEditModal from "../components/TaskEditModal";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import MembersPanel from "../components/MembersPanel";
@@ -99,82 +99,7 @@ const ProjectPage = () => {
         },
     });
 
-    useEffect(() => {
-        if (!projectId) return;
-
-        let socket;
-        
-        try {
-            socket = initSocket();
-        } catch (error) {
-            console.error("Failed to initialize socket:", error);
-            return;
-        }
-
-        const handleTaskCreated = () => {
-            queryClient.invalidateQueries({ 
-                queryKey: ["tasks", projectId],
-                refetchType: 'active' 
-            });
-        };
-
-        const handleTaskUpdated = () => {
-            queryClient.invalidateQueries({ 
-                queryKey: ["tasks", projectId],
-                refetchType: 'active' 
-            });
-        };
-
-        const handleTaskDeleted = () => {
-            queryClient.invalidateQueries({ 
-                queryKey: ["tasks", projectId],
-                refetchType: 'active' 
-            });
-        };
-
-        const handleMembershipChanged = () => {
-            queryClient.invalidateQueries({
-                queryKey: ["project", projectId],
-                refetchType: "active",
-            });
-        };
-
-        socket.off("task:created");
-        socket.off("task:updated");
-        socket.off("task:deleted");
-        socket.off("member:added");
-        socket.off("member:removed");
-        socket.off("member:ownership-transferred");
-
-        socket.on("task:created", handleTaskCreated);
-        socket.on("task:updated", handleTaskUpdated);
-        socket.on("task:deleted", handleTaskDeleted);
-        socket.on("member:added", handleMembershipChanged);
-        socket.on("member:removed", handleMembershipChanged);
-        socket.on("member:ownership-transferred", handleMembershipChanged);
-
-        const performJoin = () => {
-            joinProject(projectId);
-        };
-
-        if (socket.connected) {
-            performJoin();
-        } else {
-            socket.once("connect", performJoin);
-        }
-
-        return () => {
-            if (socket) {
-                leaveProject(projectId);
-                socket.off("task:created", handleTaskCreated);
-                socket.off("task:updated", handleTaskUpdated);
-                socket.off("task:deleted", handleTaskDeleted);
-                socket.off("member:added", handleMembershipChanged);
-                socket.off("member:removed", handleMembershipChanged);
-                socket.off("member:ownership-transferred", handleMembershipChanged);
-            }
-        };
-    }, [projectId]);
+    useProjectSocket(projectId);
 
     const handleCreateTask = (e: React.FormEvent) => {
         e.preventDefault();
