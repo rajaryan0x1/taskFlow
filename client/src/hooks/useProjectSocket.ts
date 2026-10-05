@@ -1,9 +1,11 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { initSocket, joinProject, leaveProject } from "../socket/socket";
 
 export const useProjectSocket = (projectId: string | undefined) => {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!projectId) return;
@@ -27,6 +29,12 @@ export const useProjectSocket = (projectId: string | undefined) => {
             queryClient.invalidateQueries({ queryKey: ["project", projectId], refetchType: 'active' });
         };
 
+        const handleKick = () => {
+            queryClient.invalidateQueries();
+            navigate("/");
+        };
+
+        socket.on("project:kick", handleKick);
         socket.on("task:created", handleTaskChange);
         socket.on("task:updated", handleTaskChange);
         socket.on("task:deleted", handleTaskChange);
@@ -35,6 +43,7 @@ export const useProjectSocket = (projectId: string | undefined) => {
         socket.on("member:ownership-transferred", handleMemberChange);
 
         return () => {
+            socket.off("project:kick", handleKick);
             socket.off("task:created", handleTaskChange);
             socket.off("task:updated", handleTaskChange);
             socket.off("task:deleted", handleTaskChange);

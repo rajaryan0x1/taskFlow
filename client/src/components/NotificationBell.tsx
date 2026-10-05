@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
@@ -7,7 +8,7 @@ import { initSocket } from "../socket/socket";
 interface Notification {
     _id: string;
     type: "task_assigned" | "comment_mention" | "due_soon" | "member_invited";
-    payload: { taskTitle?: string; projectName?: string };
+    payload: { taskTitle?: string; projectName?: string; projectId?: string; taskId?: string };
     read: boolean;
     createdAt: string;
 }
@@ -19,6 +20,18 @@ interface NotificationResponse {
 
 const NotificationBell = () => {
     const [open, setOpen] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
     const { data } = useQuery({
         queryKey: ["notifications"],
         queryFn: async () => {
@@ -60,7 +73,7 @@ const NotificationBell = () => {
     };
 
     return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
             <button
                 type="button"
                 aria-label="Notifications"
@@ -94,7 +107,13 @@ const NotificationBell = () => {
                             <button
                                 type="button"
                                 key={notification._id}
-                                onClick={() => !notification.read && markReadMutation.mutate(notification._id)}
+                                onClick={() => {
+                                    if (!notification.read) markReadMutation.mutate(notification._id);
+                                    if (notification.payload.projectId) {
+                                        navigate(`/projects/${notification.payload.projectId}`);
+                                        setOpen(false);
+                                    }
+                                }}
                                 className={`block w-full rounded-md p-2 text-left text-sm ${notification.read ? "text-gray-500" : "bg-blue-50 text-gray-900"}`}
                             >
                                 <span>{describe(notification)}</span>
