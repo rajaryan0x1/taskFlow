@@ -5,6 +5,7 @@ import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
 import { useProjectSocket } from "../hooks/useProjectSocket";
 import TaskEditModal from "../components/TaskEditModal";
+import CreateTaskModal from "../components/CreateTaskModal";
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import MembersPanel from "../components/MembersPanel";
 import { useAuthStore } from "../stores/authStore";
@@ -53,9 +54,7 @@ const ProjectPage = () => {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [taskTitle, setTaskTitle] = useState("");
-    const [taskDescription, setTaskDescription] = useState("");
-    const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">("medium");
+    
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [activeTab, setActiveTab] = useState<"board" | "analytics" | "members">("board");
     const [titleFilter, setTitleFilter] = useState("");
@@ -101,18 +100,7 @@ const ProjectPage = () => {
 
     useProjectSocket(projectId);
 
-    const handleCreateTask = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!projectId) return;
-
-        createTaskMutation.mutate({
-            title: taskTitle,
-            description: taskDescription || undefined,
-            priority: taskPriority,
-            projectId,
-        });
-    };
-
+    
     const getPriorityColor = (priority: string) => {
         switch (priority) {
             case "high":
@@ -382,97 +370,16 @@ const ProjectPage = () => {
                 )}
             </main>
 
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Task</h3>
-                        <form onSubmit={handleCreateTask}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label
-                                        htmlFor="taskTitle"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Task Title
-                                    </label>
-                                    <input
-                                        id="taskTitle"
-                                        type="text"
-                                        required
-                                        value={taskTitle}
-                                        onChange={(e) => setTaskTitle(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="What needs to be done?"
-                                    />
-                                </div>
-                                <div>
-                                    <label
-                                        htmlFor="taskDescription"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Description (optional)
-                                    </label>
-                                    <textarea
-                                        id="taskDescription"
-                                        value={taskDescription}
-                                        onChange={(e) => setTaskDescription(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                        placeholder="Add more details..."
-                                    />
-                                </div>
-                                <div>
-                                    <label
-                                        htmlFor="taskPriority"
-                                        className="block text-sm font-medium text-gray-700 mb-1"
-                                    >
-                                        Priority
-                                    </label>
-                                    <select
-                                        id="taskPriority"
-                                        value={taskPriority}
-                                        onChange={(e) =>
-                                            setTaskPriority(e.target.value as "low" | "medium" | "high")
-                                        }
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                                    >
-                                        <option value="low">Low</option>
-                                        <option value="medium">Medium</option>
-                                        <option value="high">High</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {createTaskMutation.isError && (
-                                <div className="mt-4 bg-red-50 text-red-600 p-3 rounded text-sm">
-                                    Failed to create task. Please try again.
-                                </div>
-                            )}
-
-                            <div className="mt-6 flex justify-end gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setIsCreateModalOpen(false);
-                                        setTaskTitle("");
-                                        setTaskDescription("");
-                                        setTaskPriority("medium");
-                                    }}
-                                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 border border-gray-300 rounded-md"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={createTaskMutation.isPending}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
-                                >
-                                    {createTaskMutation.isPending ? "Creating..." : "Create Task"}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            {/* Task Create Modal */}
+            {isCreateModalOpen && project && (
+                <CreateTaskModal
+                    projectId={projectId!}
+                    projectMembers={project.members}
+                    onClose={() => setIsCreateModalOpen(false)}
+                    onSubmit={(taskData) => createTaskMutation.mutate(taskData)}
+                    isPending={createTaskMutation.isPending}
+                    isError={createTaskMutation.isError}
+                />
             )}
 
             {/* Task Edit Modal */}
