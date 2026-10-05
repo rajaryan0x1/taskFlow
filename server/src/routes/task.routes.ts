@@ -48,7 +48,6 @@ projectTaskRoutes.patch(
     "/:taskId",
     authMiddleware,
     requireProjectAccess,
-    requirePermission("TASK_UPDATE_ANY"), // Members who own the task bypass this in controller
     updateTask
 );
 

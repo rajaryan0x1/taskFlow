@@ -273,6 +273,16 @@ export const updateTask = asyncHandler(
                     "You can only update tasks assigned to you"
                 );
             }
+
+            // Members can only update status
+            const allowedUpdates = ["status"];
+            const attemptedUpdates = Object.keys(updates).filter(k => updates[k as keyof typeof updates] !== undefined);
+            const invalidUpdates = attemptedUpdates.filter(k => !allowedUpdates.includes(k));
+            if (invalidUpdates.length > 0) {
+                throw ApiError.forbidden(
+                    `As a member, you can only update: ${allowedUpdates.join(", ")}`
+                );
+            }
         }
 
         // If assignee is being updated, validate they're a member
