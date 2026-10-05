@@ -63,23 +63,28 @@ export const initializeSocket = (httpServer: HTTPServer): SocketIOServer => {
                 }
 
                 const roomName = `project:${projectId}`;
-                socket.join(roomName);
-                socket.to(roomName).emit("user:joined", {
-                    userId: socket.data.userId,
-                    projectId,
-                });
+                if (!socket.rooms.has(roomName)) {
+                    socket.join(roomName);
+                    socket.to(roomName).emit("user:joined", {
+                        userId: socket.data.userId,
+                        projectId,
+                    });
+                }
             } catch {
                 socket.emit("error", { message: "Unable to join project" });
             }
         });
 
         socket.on("project:leave", (projectId: string) => {
+            if (!projectId || typeof projectId !== "string") return;
             const roomName = `project:${projectId}`;
-            socket.leave(roomName);
-            socket.to(roomName).emit("user:left", {
-                userId: socket.data.userId,
-                projectId,
-            });
+            if (socket.rooms.has(roomName)) {
+                socket.leave(roomName);
+                socket.to(roomName).emit("user:left", {
+                    userId: socket.data.userId,
+                    projectId,
+                });
+            }
         });
     });
 
@@ -127,6 +132,7 @@ export const broadcastMemberRemoved = (
     userId: string
 ): void => {
     io.to(`project:${projectId}`).emit("member:removed", { projectId, userId });
+    evictUserFromProject(io, projectId, userId).catch(console.error);
 };
 
 export const broadcastOwnershipTransferred = (
@@ -162,4 +168,16 @@ export const broadcastActivityCreated = (
     activity: unknown
 ): void => {
     io.to(`project:${projectId}`).emit("activity:created", activity);
+};
+
+export const evictUserFromProject = async (
+    io: SocketIOServer,
+    projectId: string,
+    userId: string
+): Promise<void> => {
+    const sockets = await io.in(`user:${userId}`).fetchSockets();
+    for (const socket of sockets) {
+        socket.leave(`project:${projectId}`);
+        socket.emit("project:evicted", { projectId });
+    }
 };
