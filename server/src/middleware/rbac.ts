@@ -16,56 +16,55 @@ declare global {
     }
 }
 
-export const requireProjectAccess = async (
-    req: Request,
-    _res: Response,
-    next: NextFunction
-): Promise<void> => {
-    try {
-        const { projectId } = req.params;
-        if (!projectId || typeof projectId !== "string") {
-            throw ApiError.badRequest("Project ID is required");
+export const createProjectAccessMiddleware = (options?: { allowArchived?: boolean }) => {
+    return async (req: Request, _res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const { projectId } = req.params;
+            if (!projectId || typeof projectId !== "string") {
+                throw ApiError.badRequest("Project ID is required");
+            }
+
+            // Validate projectId is a valid ObjectId before hitting the DB
+            if (!Types.ObjectId.isValid(projectId)) {
+                throw ApiError.badRequest("Invalid project ID");
+            }
+
+            const project = await Project.findById(projectId);
+
+            if (!project) {
+                throw ApiError.notFound("Project not found");
+            }
+
+            if (project.isArchived && !options?.allowArchived) {
+                throw ApiError.forbidden("This project has been archived");
+            }
+
+            // app_admin bypasses membership — attach owner role as a stand-in
+            // so requirePermission() checks don't break downstream
+            if (req.user?.role === AppRole.APP_ADMIN) {
+                req.projectMembership = { project, role: ProjectRole.OWNER };
+                return next();
+            }
+
+            // Find the user's role in this project
+            const memberRole = project.getMemberRole(req.user!.id);
+
+            if (!memberRole) {
+                throw ApiError.forbidden("You are not a member of this project");
+            }
+
+            // Attach to req — controllers and requirePermission() read from here
+            req.projectMembership = { project, role: memberRole };
+
+            next();
+        } catch (err) {
+            next(err);
         }
+    };
+};
 
-        // Validate projectId is a valid ObjectId before hitting the DB
-        if (!Types.ObjectId.isValid(projectId)) {
-            throw ApiError.badRequest("Invalid project ID");
-        }
-
-        const project = await Project.findById(projectId);
-
-        if (!project) {
-            throw ApiError.notFound("Project not found");
-        }
-
-        if (project.isArchived) {
-            throw ApiError.forbidden("This project has been archived");
-        }
-
-        // app_admin bypasses membership — attach owner role as a stand-in
-        // so requirePermission() checks don't break downstream
-        if (req.user?.role === AppRole.APP_ADMIN) {
-            req.projectMembership = { project, role: ProjectRole.OWNER };
-            return next();
-        }
-
-        // Find the user's role in this project
-        const memberRole = project.getMemberRole(req.user!.id);
-
-        if (!memberRole) {
-            throw ApiError.forbidden("You are not a member of this project");
-        }
-
-        // Attach to req — controllers and requirePermission() read from here
-        req.projectMembership = { project, role: memberRole };
-
-        next();
-    } catch (err) {
-        next(err);
-    }
-}
-
-
+export const requireProjectAccess = createProjectAccessMiddleware();
+export const requireArchivedProjectAccess = createProjectAccessMiddleware({ allowArchived: true });
 
 export const requirePermission = (permission: PermissionKey) => {
     return (req: Request, _res: Response, next: NextFunction): void => {

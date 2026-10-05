@@ -148,6 +148,17 @@ export const deleteProject = asyncHandler(
     if (hardDelete) {
       // Hard delete — removes from DB entirely
       await Project.findByIdAndDelete(project._id);
+      
+      const { Task } = await import("../models/Task.js");
+      const { Comment } = await import("../models/Comment.js");
+      const { Activity } = await import("../models/Activity.js");
+      
+      const tasks = await Task.find({ project: project._id }).select("_id");
+      const taskIds = tasks.map(t => t._id);
+      
+      await Task.deleteMany({ project: project._id });
+      await Comment.deleteMany({ task: { $in: taskIds } });
+      await Activity.deleteMany({ project: project._id });
       res.status(200).json({
         success: true,
         message: "Project permanently deleted",
@@ -321,6 +332,22 @@ export const transferOwnership = asyncHandler(
       success: true,
       message: "Ownership transferred successfully",
       data: updatedProject,
+    });
+  }
+);
+
+export const restoreProject = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const project = req.projectMembership!.project;
+    if (!project.isArchived) {
+      throw ApiError.badRequest("Project is not archived");
+    }
+    project.isArchived = false;
+    await project.save();
+    res.status(200).json({
+      success: true,
+      message: "Project restored successfully",
+      data: project,
     });
   }
 );
