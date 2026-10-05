@@ -1,0 +1,121 @@
+import type { Request, Response } from "express";
+import zod from "zod";
+import User from "../models/User.js";
+import { env } from "../config/env.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import asyncHandler from "../utils/asyncHandler.js";
+
+// ─── Validation Schemas 
+const registerSchema = zod.object({
+  firstName: zod.string().min(2).max(30),
+  lastName: zod.string().min(2).max(30),
+  username: zod.string().min(3).max(20),
+  email: zod.string().email().toLowerCase().trim(),
+  password: zod.string().min(6),
+});
+
+const loginSchema = zod.object({
+  email: zod.string().email().toLowerCase().trim(),
+  password: zod.string().min(1, "Password is required"),
+});
+
+// ─── Helpers 
+function signToken(userId: string, role: "app_admin" | "user"): string {
+  return jwt.sign({ sub: userId, role }, env.JWT_SECRET, { expiresIn: "1h" });
+}
+
+// ─── Controllers
+
+export const register = asyncHandler(async (req: Request, res: Response) => {
+  const parseResult = registerSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({
+      message: "Invalid input",
+      errors: parseResult.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const { firstName, lastName, username, email, password } = parseResult.data;
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newUser = await User.create({
+    firstName,
+    lastName,
+    username,
+    email,
+    password: hashedPassword,
+  });
+
+  const token = signToken(newUser._id.toString(), newUser.appRole);
+
+  res.status(201).json({
+    message: "Account created successfully",
+    token,
+    user: {
+      id: newUser._id,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
+      username: newUser.username,
+      email: newUser.email,
+      appRole: newUser.appRole,
+    },
+  });
+});
+
+export const login = asyncHandler(async (req: Request, res: Response) => {
+  const parseResult = loginSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({
+      message: "Invalid input",
+      errors: parseResult.error.flatten().fieldErrors,
+    });
+    return;
+  }
+
+  const { email, password } = parseResult.data;
+
+  const user = await User.findOne({ email }).select("+password");
+
+  const DUMMY_HASH = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8yZ6cC7rZ6eQ6F0s1q1yG8kGZr8YqW";
+  const hashToCompare = user?.password ?? DUMMY_HASH;
+
+  const isPasswordValid = await bcrypt.compare(password, hashToCompare);
+
+  if (!user || !isPasswordValid) {
+    res.status(401).json({ message: "Invalid email or password" });
+    return;
+  }
+
+  const token = signToken(user._id.toString(), user.appRole);
+
+  res.status(200).json({
+    message: "Login successful",
+    token,
+    user: {
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      appRole: user.appRole,
+    },
+  });
+});
+
+export const logout = (req: Request, res: Response) => {
+  res.status(200).json({ message: "Logout successful" });
+};
+
+export const getMe = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id);
+
+  if (!user) {
+    res.status(404).json({ message: "User not found" });
+    return;
+  }
+
+  res.status(200).json({ user });
+});
