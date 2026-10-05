@@ -479,6 +479,7 @@ const ProjectPage = () => {
             {selectedTask && project && (
                 <TaskEditModal
                     task={selectedTask}
+                    currentUserRole={currentUserRole}
                     projectId={projectId!}
                     projectMembers={project.members}
                     onClose={() => setSelectedTask(null)}

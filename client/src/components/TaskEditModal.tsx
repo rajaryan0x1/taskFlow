@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
+import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../socket/socket";
 
 interface Task {
@@ -20,6 +21,7 @@ interface Task {
 interface TaskEditModalProps {
     task: Task;
     projectId: string;
+    currentUserRole?: "owner" | "admin" | "member";
     projectMembers: Array<{
         user: {
             _id: string;
@@ -46,7 +48,10 @@ interface Activity {
     actor: { _id: string; firstName: string; lastName: string };
 }
 
-const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditModalProps) => {
+const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRole }: TaskEditModalProps) => {
+    const user = useAuthStore((state) => state.user);
+    const canEdit = currentUserRole === "owner" || currentUserRole === "admin" || (task.assignee && typeof task.assignee !== "string" && task.assignee._id === user?.id);
+    const canDelete = currentUserRole === "owner" || currentUserRole === "admin";
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || "");
     const [status, setStatus] = useState(task.status);
@@ -175,7 +180,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                                 type="text"
                                 required
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                disabled={!canEdit} onChange={(e) => setTitle(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
@@ -187,7 +192,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             <textarea
                                 id="editDescription"
                                 value={description}
-                                onChange={(e) => setDescription(e.target.value)}
+                                disabled={!canEdit} onChange={(e) => setDescription(e.target.value)}
                                 rows={3}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
@@ -200,7 +205,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             <select
                                 id="editStatus"
                                 value={status}
-                                onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
+                                disabled={!canEdit} onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="todo">To Do</option>
@@ -217,7 +222,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                                 id="editDueDate"
                                 type="date"
                                 value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
+                                disabled={!canEdit} onChange={(e) => setDueDate(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
@@ -228,7 +233,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             <select
                                 id="editPriority"
                                 value={priority}
-                                onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
+                                disabled={!canEdit} onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="low">Low</option>
@@ -244,7 +249,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             <select
                                 id="editAssignee"
                                 value={assignee}
-                                onChange={(e) => setAssignee(e.target.value)}
+                                disabled={!canEdit} onChange={(e) => setAssignee(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Unassigned</option>
@@ -268,6 +273,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                                         <button
                                             type="button"
                                             onClick={() => deleteCommentMutation.mutate(comment._id)}
+                                            style={{ display: (currentUserRole === "owner" || currentUserRole === "admin" || comment.author._id === user?.id) ? "block" : "none" }}
                                             className="text-red-600 hover:text-red-800"
                                         >
                                             Delete
@@ -333,7 +339,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                         <button
                             type="button"
                             onClick={handleDelete}
-                            disabled={deleteTaskMutation.isPending}
+                            disabled={deleteTaskMutation.isPending || !canDelete}
+                            style={{ display: canDelete ? "block" : "none" }}
                             className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 border border-red-300 rounded-md disabled:opacity-50"
                         >
                             {deleteTaskMutation.isPending ? "Deleting..." : "Delete Task"}
@@ -348,7 +355,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose }: TaskEditMod
                             </button>
                             <button
                                 type="submit"
-                                disabled={updateTaskMutation.isPending}
+                                disabled={updateTaskMutation.isPending || !canEdit}
+                                style={{ display: canEdit ? "block" : "none" }}
                                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md disabled:opacity-50"
                             >
                                 {updateTaskMutation.isPending ? "Saving..." : "Save Changes"}
