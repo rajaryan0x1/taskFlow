@@ -29,8 +29,8 @@ const createTaskSchema = zod.object({
     priority: zod
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .default(TaskPriority.MEDIUM),
-    assignee: zod.string().optional(),
-    dueDate: zod.iso.datetime().optional(),
+    assignee: zod.string().nullable().optional(),
+    dueDate: zod.string().nullable().optional(),
     projectId: zod.string().optional(),
 });
 
@@ -43,12 +43,12 @@ const updateTaskSchema = zod.object({
     priority: zod
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .optional(),
-    assignee: zod.string().optional(),
-    dueDate: zod.iso.datetime().optional(),
+    assignee: zod.string().nullable().optional(),
+    dueDate: zod.string().nullable().optional(),
 });
 
 const assignTaskSchema = zod.object({
-    assignee: zod.string(), // Can be empty string to unassign
+    assignee: zod.string().nullable(), // Can be empty string or null to unassign
 });
 
 const createCommentSchema = zod.object({
@@ -72,7 +72,7 @@ const queryFilterSchema = zod.object({
     status: zod
         .enum([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE])
         .optional(),
-    assignee: zod.string().optional(),
+    assignee: zod.string().nullable().optional(),
     priority: zod
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .optional(),
@@ -264,7 +264,7 @@ export const updateTask = asyncHandler(
         }
 
         // If assignee is being updated, validate they're a member
-        if (updates.assignee !== undefined && updates.assignee !== "") {
+        if (updates.assignee !== undefined && updates.assignee !== "" && updates.assignee !== null) {
             if (!Types.ObjectId.isValid(updates.assignee)) {
                 throw ApiError.badRequest("Invalid assignee ID");
             }
@@ -286,7 +286,7 @@ export const updateTask = asyncHandler(
             task.assignee = updates.assignee === "" ? null : (updates.assignee as any);
         }
         if (updates.dueDate !== undefined) {
-            task.dueDate = new Date(updates.dueDate);
+            task.dueDate = (updates.dueDate === "" || updates.dueDate === null) ? null : new Date(updates.dueDate);
         }
 
         await task.save();
@@ -405,7 +405,7 @@ export const assignTask = asyncHandler(
         const task = req.task;
 
         // Empty string means unassign
-        if (assignee === "") {
+        if (assignee === "" || assignee === null) {
             task.assignee = undefined as any;
         } else {
             if (!Types.ObjectId.isValid(assignee)) {
