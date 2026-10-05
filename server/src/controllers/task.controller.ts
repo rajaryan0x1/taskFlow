@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import zod from "zod";
 import { Task, TaskStatus, TaskPriority } from "../models/Task.js";
 import { Project } from "../models/Project.js";
-// import User from "../models/User.js";
+import User from "../models/User.js";
 import { ProjectRole } from "../types/roles.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -519,6 +519,24 @@ export const createTaskComment = asyncHandler(
             body: parseResult.data.body,
         });
         await logActivity(task.project, task._id, req.user!.id, "commented", {}, req.app.locals.io);
+
+        // Parse mentions
+        const mentions = Array.from(parseResult.data.body.matchAll(/@([a-zA-Z0-9_]+)/g)).map(m => m[1] as string);
+        if (mentions.length > 0) {
+            const mentionedUsers = await User.find({ username: { $in: mentions } }).select("_id username");
+            const project = req.projectMembership!.project;
+            for (const u of mentionedUsers) {
+                if (u._id.toString() !== req.user!.id && project.getMemberRole(u._id.toString())) {
+                    await createNotification(req.app.locals.io, u._id.toString(), "comment_mention", {
+                        taskId: task._id.toString(),
+                        taskTitle: task.title,
+                        projectId: task.project.toString(),
+                        commentId: comment._id.toString(),
+                        author: req.user!.id,
+                    });
+                }
+            }
+        }
         const populatedComment = await Comment.findById(comment._id)
             .populate("author", "firstName lastName username");
 

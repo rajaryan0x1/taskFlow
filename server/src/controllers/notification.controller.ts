@@ -45,3 +45,15 @@ export const markAllNotificationsRead = asyncHandler(async (req: Request, res: R
   await Notification.updateMany({ user: req.user!.id, read: false }, { read: true });
   res.status(200).json({ success: true, message: "Notifications marked as read" });
 });
+
+export const deleteNotification = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+  const { id } = req.params;
+  if (!id || typeof id !== "string" || !Types.ObjectId.isValid(id)) {
+    throw ApiError.badRequest("Invalid notification ID");
+  }
+
+  const notification = await Notification.findOneAndDelete({ _id: id, user: req.user!.id });
+  if (!notification) throw ApiError.notFound("Notification not found");
+
+  res.status(200).json({ success: true, message: "Notification deleted" });
+});
