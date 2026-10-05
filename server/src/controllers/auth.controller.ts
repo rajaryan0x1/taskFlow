@@ -4,6 +4,11 @@ import { env } from "../config/env.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
+import { OAuth2Client } from "google-auth-library";
+import { ApiError } from "../utils/ApiError.js";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "dummy_client_id");
+
 
 // ─── Helpers 
 function signToken(userId: string, role: "app_admin" | "user"): string {
@@ -85,4 +90,62 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   }
 
   res.status(200).json({ user });
+});
+
+
+export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    throw ApiError.badRequest("Google credential is required");
+  }
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken: credential,
+    audience: process.env.GOOGLE_CLIENT_ID || "dummy_client_id",
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload || !payload.email) {
+    throw ApiError.unauthorized("Invalid Google token");
+  }
+
+  const emailStr = payload.email as string;
+  let user = await User.findOne({ email: emailStr });
+
+  if (!user) {
+    // Generate a default username
+    const username = (emailStr.split("@")[0] || "user") + Math.floor(Math.random() * 1000);
+    user = await User.create({
+      firstName: payload.given_name || "User",
+      lastName: payload.family_name || "",
+      email: emailStr,
+      username,
+      googleId: payload.sub,
+      authProvider: "google",
+    });
+  } else if (!user.googleId) {
+    // Link google account to existing user
+    user.googleId = payload.sub;
+    user.authProvider = "google";
+    await user.save();
+  }
+
+  const token = signToken(user._id.toString(), user.appRole);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        appRole: user.appRole,
+        authProvider: user.authProvider,
+      },
+    },
+  });
 });

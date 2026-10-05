@@ -8,6 +8,7 @@ import {
   login,
   logout,
   getMe,
+  googleAuth,
 } from "../controllers/auth.controller.js";
 
 const router = Router();
@@ -35,6 +36,13 @@ const loginSchema = zod.object({
 // ─── Routes 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
+
+const googleSchema = zod.object({
+  credential: zod.string().min(1, "Credential is required"),
+});
+
+router.post("/google", authLimiter, validate(googleSchema), googleAuth);
+
 router.post("/logout", logout);
 router.get("/me", authMiddleware, getMe);
 

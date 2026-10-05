@@ -4,6 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { getErrorMessage } from "../utils/apiError";
 import { useAuthStore } from "../stores/authStore";
+import { GoogleLogin } from "@react-oauth/google";
 
 interface LoginResponse {
     token: string;
@@ -30,6 +31,18 @@ const LoginPage = () => {
         mutationFn: async (credentials: { email: string; password: string }) => {
             const response = await api.post<LoginResponse>("/auth/login", credentials);
             return response.data;
+        },
+        onSuccess: (data) => {
+            setAuth(data.token, data.user);
+            navigate("/");
+        },
+    });
+
+    
+    const googleLoginMutation = useMutation({
+        mutationFn: async (credential: string) => {
+            const response = await api.post<{ data: LoginResponse }>("/auth/google", { credential });
+            return response.data.data;
         },
         onSuccess: (data) => {
             setAuth(data.token, data.user);
@@ -109,6 +122,35 @@ const LoginPage = () => {
                     >
                         {loginMutation.isPending ? "Signing in..." : "Sign in"}
                     </button>
+
+                    <div className="relative mt-4">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-white/10" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-slate-900 text-slate-400">Or continue with</span>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-center">
+                        <GoogleLogin
+                            onSuccess={(credentialResponse) => {
+                                if (credentialResponse.credential) {
+                                    googleLoginMutation.mutate(credentialResponse.credential);
+                                }
+                            }}
+                            onError={() => {
+                                console.error('Google Login Failed');
+                            }}
+                            theme="filled_black"
+                        />
+                    </div>
+                    {googleLoginMutation.isError && (
+                        <div className="mt-2 text-sm text-red-500 text-center">
+                            {getErrorMessage(googleLoginMutation.error, "Google Login failed")}
+                        </div>
+                    )}
+
 
                     <div className="text-center text-sm text-slate-300">
                         Don't have an account?{" "}

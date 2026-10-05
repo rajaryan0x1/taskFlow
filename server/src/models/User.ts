@@ -6,7 +6,9 @@ export interface IUser extends Document {
   lastName: string;
   username: string;
   email: string;
-  password: string;
+  password?: string;
+  googleId?: string;
+  authProvider: "local" | "google";
   appRole: "app_admin" | "user";
   createdAt: Date;
   updatedAt: Date;
@@ -46,9 +48,18 @@ const UserSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
       minlength: 6,
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
     },
     appRole: {
       type: String,
