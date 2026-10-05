@@ -1,24 +1,9 @@
 import type { Request, Response } from "express";
-import zod from "zod";
 import User from "../models/User.js";
 import { env } from "../config/env.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
-
-// ─── Validation Schemas 
-const registerSchema = zod.object({
-  firstName: zod.string().min(2).max(30),
-  lastName: zod.string().min(2).max(30),
-  username: zod.string().min(3).max(20),
-  email: zod.string().email().toLowerCase().trim(),
-  password: zod.string().min(6),
-});
-
-const loginSchema = zod.object({
-  email: zod.string().email().toLowerCase().trim(),
-  password: zod.string().min(1, "Password is required"),
-});
 
 // ─── Helpers 
 function signToken(userId: string, role: "app_admin" | "user"): string {
@@ -28,16 +13,7 @@ function signToken(userId: string, role: "app_admin" | "user"): string {
 // ─── Controllers
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-  const parseResult = registerSchema.safeParse(req.body);
-  if (!parseResult.success) {
-    res.status(400).json({
-      message: "Invalid input",
-      errors: parseResult.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
-  const { firstName, lastName, username, email, password } = parseResult.data;
+  const { firstName, lastName, username, email, password } = req.body;
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -66,16 +42,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
-  const parseResult = loginSchema.safeParse(req.body);
-  if (!parseResult.success) {
-    res.status(400).json({
-      message: "Invalid input",
-      errors: parseResult.error.flatten().fieldErrors,
-    });
-    return;
-  }
-
-  const { email, password } = parseResult.data;
+  const { email, password } = req.body;
 
   const user = await User.findOne({ email }).select("+password");
 
