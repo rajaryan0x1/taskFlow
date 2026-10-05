@@ -53,7 +53,7 @@ export const getProjectProgress = asyncHandler(async (req: Request, res: Respons
         },
         {
             $group: {
-                _id: "$createdBy",
+                _id: "$assignee",
                 count: { $sum: 1 },
             },
         },
@@ -124,7 +124,7 @@ export const getUserPerformance = asyncHandler(
             },
             {
                 $group: {
-                    _id: "$createdBy",
+                    _id: "$assignee",
                     total: { $sum: 1 },
                     completed: {
                         $sum: {
@@ -217,42 +217,63 @@ export const getTimeline = asyncHandler(
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-        // Aggregation: Group tasks by creation date
-        const timelinePipeline = await Task.aggregate([
+        // Fetch created counts
+        const createdPipeline = await Task.aggregate([
             {
                 $match: {
                     project: new Types.ObjectId(projectId.toString()),
+                    isArchived: false,
                     createdAt: { $gte: thirtyDaysAgo },
                 },
             },
             {
                 $group: {
-                    _id: {
-                        $dateToString: {
-                            format: "%Y-%m-%d",
-                            date: "$createdAt",
-                        },
-                    },
-                    created: { $sum: 1 },
-                    completed: {
-                        $sum: {
-                            $cond: [{ $eq: ["$status", TaskStatus.DONE] }, 1, 0],
-                        },
-                    },
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                    count: { $sum: 1 },
                 },
-            },
-            {
-                $project: {
-                    _id: 0,
-                    date: "$_id",
-                    created: 1,
-                    completed: 1,
-                },
-            },
-            {
-                $sort: { date: 1 },
-            },
+            }
         ]);
+
+        // Fetch completed counts
+        const completedPipeline = await Task.aggregate([
+            {
+                $match: {
+                    project: new Types.ObjectId(projectId.toString()),
+                    isArchived: false,
+                    completedAt: { $gte: thirtyDaysAgo },
+                },
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$completedAt" } },
+                    count: { $sum: 1 },
+                },
+            }
+        ]);
+
+        const timelineMap = new Map<string, { date: string; created: number; completed: number }>();
+        
+        // Fill 30 days
+        for (let i = 0; i <= 30; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateStr = d.toISOString().split('T')[0] as string;
+            timelineMap.set(dateStr, { date: dateStr, created: 0, completed: 0 });
+        }
+
+        for (const item of createdPipeline) {
+            if (timelineMap.has(item._id)) {
+                timelineMap.get(item._id)!.created = item.count;
+            }
+        }
+
+        for (const item of completedPipeline) {
+            if (timelineMap.has(item._id)) {
+                timelineMap.get(item._id)!.completed = item.count;
+            }
+        }
+
+        const timelinePipeline = Array.from(timelineMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
         // overdue tasks
         const overdueTasks = await Task.countDocuments({

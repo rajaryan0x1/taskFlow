@@ -132,6 +132,7 @@ export const createTask = asyncHandler(
             project: projectId,
             ...(assignee && { assignee }),
             ...(dueDate && { dueDate: new Date(dueDate) }),
+            ...(status === TaskStatus.DONE && { completedAt: new Date() }),
             createdBy: req.user!.id,
         });
         await logActivity(projectId, task._id, req.user!.id, "created", {}, req.app.locals.io);
@@ -277,10 +278,18 @@ export const updateTask = asyncHandler(
         }
 
         // Apply updates
+        if (updates.status !== undefined) {
+            task.status = updates.status;
+            if (updates.status === TaskStatus.DONE && previousStatus !== TaskStatus.DONE) {
+                task.completedAt = new Date();
+            } else if (updates.status !== TaskStatus.DONE && previousStatus === TaskStatus.DONE) {
+                task.completedAt = undefined;
+            }
+        }
         if (updates.title !== undefined) task.title = updates.title;
         if (updates.description !== undefined)
             task.description = updates.description;
-        if (updates.status !== undefined) task.status = updates.status;
+        
         if (updates.priority !== undefined) task.priority = updates.priority;
         if (updates.assignee !== undefined) {
             task.assignee = updates.assignee === "" ? null : (updates.assignee as any);

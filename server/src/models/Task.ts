@@ -20,6 +20,7 @@ export interface ITask extends Document {
   project: Types.ObjectId;
   assignee?: Types.ObjectId;
   createdBy: Types.ObjectId;
+  completedAt?: Date;
   dueDate?: Date;
   isArchived: boolean;
   createdAt: Date;
@@ -70,6 +71,9 @@ const TaskSchema = new Schema<ITask>(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+    },
+    completedAt: {
+        type: Date,
     },
     dueDate: {
       type: Date,
