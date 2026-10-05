@@ -164,7 +164,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Edit Task</h3>
