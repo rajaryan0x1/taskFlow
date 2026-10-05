@@ -15,13 +15,13 @@ import { createNotification } from "../utils/notifications.js";
 //  Validation Schema 
 
 const createProjectSchema = zod.object({
-    name: zod.string().min(3).max(100),
-    description: zod.string().min(10).max(500).optional()
+    name: zod.string().min(1).max(100),
+    description: zod.string().max(1000).optional()
 })
 
 const updateProjectSchema = zod.object({
-    name: zod.string().min(3).max(100).optional(),
-    description: zod.string().min(10).max(500).optional()
+    name: zod.string().min(1).max(100).optional(),
+    description: zod.string().max(1000).optional()
 })
 
 

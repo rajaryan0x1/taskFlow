@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { getErrorMessage } from "../utils/apiError";
 import api from "../api/axios";
 import type { Project } from "../types";
 
@@ -17,12 +18,12 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
 
     const updateProjectMutation = useMutation({
         mutationFn: async (data: { name: string; description: string }) => {
-            const res = await api.put(`/projects/${project._id}`, data);
+            const res = await api.patch(`/projects/${project._id}`, data);
             return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["project", project._id] });
-            alert("Project updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
         },
     });
 
@@ -59,6 +60,16 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
         <div className="max-w-3xl mx-auto space-y-8">
             <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-6">
                 <h3 className="text-lg font-semibold text-white mb-4">Project Details</h3>
+                {updateProjectMutation.isSuccess && (
+                    <div className="mb-4 text-sm text-emerald-400 bg-emerald-900/20 p-3 rounded border border-emerald-500/30">
+                        Project updated successfully.
+                    </div>
+                )}
+                {updateProjectMutation.isError && (
+                    <div className="mb-4 text-sm text-red-500 bg-rose-900/20 p-3 rounded border border-red-500/30">
+                        {getErrorMessage(updateProjectMutation.error)}
+                    </div>
+                )}
                 <form onSubmit={handleUpdate} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-200 mb-1">
@@ -87,7 +98,7 @@ export const ProjectSettings = ({ project }: ProjectSettingsProps) => {
                         <button
                             type="submit"
                             disabled={updateProjectMutation.isPending || (name === project.name && description === project.description)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] disabled:opacity-50 transition-all"
                         >
                             {updateProjectMutation.isPending ? "Saving..." : "Save Changes"}
                         </button>

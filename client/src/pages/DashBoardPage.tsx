@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
+import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
 import NotificationBell from "../components/NotificationBell";
 
@@ -287,8 +288,8 @@ const DashboardPage = () => {
                             </div>
 
                             {createProjectMutation.isError && (
-                                <div className="mt-4 bg-rose-900/20 text-red-600 p-3 rounded text-sm">
-                                    Failed to create project. Please try again.
+                                <div className="mt-4 bg-rose-900/20 text-red-600 p-3 rounded text-sm border border-red-500/30">
+                                    {getErrorMessage(createProjectMutation.error)}
                                 </div>
                             )}
 
