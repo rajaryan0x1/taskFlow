@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
+import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../socket/socket";
@@ -339,7 +340,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
 
                     {updateTaskMutation.isError && (
                         <div className="mt-4 bg-red-50 text-red-600 p-3 rounded text-sm">
-                            Failed to update task. Please try again.
+                            {getErrorMessage(updateTaskMutation.error, "Failed to update task")}
                         </div>
                     )}
 

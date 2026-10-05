@@ -385,6 +385,7 @@ const createTaskMutation = useMutation({
                     onSubmit={(taskData) => createTaskMutation.mutate(taskData)}
                     isPending={createTaskMutation.isPending}
                     isError={createTaskMutation.isError}
+                    error={createTaskMutation.error}
                 />
             )}
 

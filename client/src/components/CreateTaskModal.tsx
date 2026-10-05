@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getErrorMessage } from "../utils/apiError";
 import { Member } from "../types";
 
 interface CreateTaskModalProps {
@@ -8,6 +9,7 @@ interface CreateTaskModalProps {
     onSubmit: (task: any) => void;
     isPending: boolean;
     isError: boolean;
+    error: unknown;
 }
 
 const CreateTaskModal = ({
@@ -17,6 +19,7 @@ const CreateTaskModal = ({
     onSubmit,
     isPending,
     isError,
+    error,
 }: CreateTaskModalProps) => {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -155,7 +158,7 @@ const CreateTaskModal = ({
 
                     {isError && (
                         <div className="mt-4 bg-red-50 text-red-600 p-3 rounded text-sm">
-                            Failed to create task. Please try again.
+                            {getErrorMessage(error, "Failed to create task")}
                         </div>
                     )}
 

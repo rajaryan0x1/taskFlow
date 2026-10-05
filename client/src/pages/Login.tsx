@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
+import { getErrorMessage } from "../utils/apiError";
 import { useAuthStore } from "../stores/authStore";
 
 interface LoginResponse {
@@ -65,7 +66,7 @@ const LoginPage = () => {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {loginMutation.isError && (
                         <div className="bg-red-50 text-red-600 p-3 rounded text-sm">
-                            Invalid email or password
+                            {getErrorMessage(loginMutation.error, "Invalid email or password")}
                         </div>
                     )}
 
