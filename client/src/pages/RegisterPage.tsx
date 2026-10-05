@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
-import { getErrorMessage } from "../utils/apiError";
 import { useAuthStore } from "../stores/authStore";
 
 interface RegisterResponse {

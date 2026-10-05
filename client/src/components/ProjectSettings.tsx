@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
-import { Project } from "../types";
+import type { Project } from "../types";
 
 interface ProjectSettingsProps {
     project: Project;

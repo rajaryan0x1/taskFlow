@@ -95,6 +95,26 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
         },
     });
 
+    
+    const updateRoleMutation = useMutation({
+        mutationFn: async (data: { userId: string; role: string }) => {
+            const res = await api.patch(`/projects/${projectId}/members/${data.userId}`, { role: data.role });
+            return res.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+        },
+    });
+
+    const leaveMutation = useMutation({
+        mutationFn: async () => {
+            await api.delete(`/projects/${projectId}/leave`);
+        },
+        onSuccess: () => {
+            window.location.href = "/";
+        },
+    });
+
     const removeMutation = useMutation({
         mutationFn: async (userId: string) => {
             const res = await api.delete(`/projects/${projectId}/members/${userId}`);

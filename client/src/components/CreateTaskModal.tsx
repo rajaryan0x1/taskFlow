@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { getErrorMessage } from "../utils/apiError";
-import { Member } from "../types";
+import type { Member } from "../types";
 
 interface CreateTaskModalProps {
     projectId: string;

@@ -1,4 +1,4 @@
-import { Member } from "../../types";
+import type { Member } from "../../types";
 
 interface FilterBarProps {
     titleFilter: string;
@@ -6,7 +6,7 @@ interface FilterBarProps {
     assigneeFilter: string;
     setAssigneeFilter: (v: string) => void;
     priorityFilters: Set<string>;
-    togglePriorityFilter: (p: string) => void;
+    togglePriorityFilter: (p: "low" | "medium" | "high") => void;
     clearFilters: () => void;
     projectMembers: Member[];
 }

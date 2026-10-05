@@ -5,48 +5,14 @@ import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../socket/socket";
-
-interface Task {
-    _id: string;
-    title: string;
-    description?: string;
-    status: "todo" | "in_progress" | "done";
-    priority: "low" | "medium" | "high";
-    assignee?: {
-        _id: string;
-        firstName: string;
-        lastName: string;
-    };
-}
+import type { Task, Member, Activity, Comment } from "../types";
 
 interface TaskEditModalProps {
     task: Task;
     projectId: string;
     currentUserRole?: "owner" | "admin" | "member";
-    projectMembers: Array<{
-        user: {
-            _id: string;
-            firstName: string;
-            lastName: string;
-            email: string;
-        };
-    }>;
+    projectMembers: Member[];
     onClose: () => void;
-}
-
-interface Comment {
-    _id: string;
-    body: string;
-    createdAt: string;
-    author: { _id: string; firstName: string; lastName: string };
-}
-
-interface Activity {
-    _id: string;
-    type: "created" | "status_changed" | "assigned" | "commented";
-    meta: { from?: string; to?: string; assignee?: string | null };
-    createdAt: string;
-    actor: { _id: string; firstName: string; lastName: string };
 }
 
 const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRole }: TaskEditModalProps) => {
@@ -54,6 +20,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     const canEdit = currentUserRole === "owner" || currentUserRole === "admin" || (task.assignee && typeof task.assignee !== "string" && task.assignee._id === user?.id);
     const canDelete = currentUserRole === "owner" || currentUserRole === "admin";
     const [title, setTitle] = useState(task.title);
+    const [dueDate, setDueDate] = useState(task.dueDate ? task.dueDate.split("T")[0] : "");
     const [description, setDescription] = useState(task.description || "");
     const [status, setStatus] = useState(task.status);
     const [priority, setPriority] = useState(task.priority);

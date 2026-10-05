@@ -122,6 +122,15 @@ const DashboardPage = () => {
                         </svg>
                         New Project
                     </button>
+                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer ml-4">
+                        <input
+                            type="checkbox"
+                            checked={showArchived}
+                            onChange={(e) => setShowArchived(e.target.checked)}
+                            className="rounded text-indigo-600 focus:ring-indigo-500 bg-slate-900/50 border-white/10"
+                        />
+                        Show Archived
+                    </label>
                 </div>
 
                 {/* Loading State */}
