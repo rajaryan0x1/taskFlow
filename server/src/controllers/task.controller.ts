@@ -102,10 +102,12 @@ export const createTask = asyncHandler(
         }
 
         // Check project exists and user is a member
-        const project = await Project.findById(projectId);
+        const project = req.projectMembership?.project ?? await Project.findById(projectId);
         if (!project) {
             throw ApiError.notFound("Project not found");
         }
+
+        if (project.isArchived) throw ApiError.forbidden("This project has been archived");
 
         const memberRole = project.getMemberRole(req.user!.id);
         if (!memberRole) {

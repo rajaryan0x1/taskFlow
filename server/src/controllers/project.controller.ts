@@ -4,7 +4,7 @@ import { Project } from "../models/Project.js";
 import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { ProjectRole } from "../types/roles.js";
+import { ProjectRole, canManageRole } from "../types/roles.js";
 import {
   broadcastMemberAdded,
   broadcastMemberRemoved,
@@ -190,6 +190,9 @@ export const inviteMember = asyncHandler(
 
     const { userId, role } = parseResult.data;
     const project = req.projectMembership!.project;
+    if (!canManageRole(req.projectMembership!.role, role)) {
+      throw ApiError.forbidden("You cannot invite a member with an equal or higher role");
+    }
 
     // Check if user exists
     const userToInvite = await User.findById(userId);

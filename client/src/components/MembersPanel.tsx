@@ -17,7 +17,7 @@ interface Member {
 }
 
 interface SearchUser {
-    _id: string;
+    id: string;
     firstName: string;
     lastName: string;
     username: string;
@@ -79,7 +79,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
 
     // Filter out existing members from search results
     const memberIds = new Set(members.map((m) => m.user._id));
-    const filteredResults = searchResults?.filter((u) => !memberIds.has(u._id)) ?? [];
+    const filteredResults = searchResults?.filter((u) => !memberIds.has(u.id)) ?? [];
 
     // ── Mutations ──
     const inviteMutation = useMutation({
@@ -98,7 +98,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
     
     const updateRoleMutation = useMutation({
         mutationFn: async (data: { userId: string; role: string }) => {
-            const res = await api.patch(`/projects/${projectId}/members/${data.userId}`, { role: data.role });
+            const res = await api.patch(`/projects/${projectId}/members/${data.userId}/role`, { role: data.role });
             return res.data;
         },
         onSuccess: () => {
@@ -197,8 +197,8 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                     {filteredResults.length > 0 ? (
                                         filteredResults.map((user) => (
                                             <button
-                                                key={user._id}
-                                                onClick={() => handleInvite(user._id)}
+                                                key={user.id}
+                                                onClick={() => handleInvite(user.id)}
                                                 disabled={inviteMutation.isPending}
                                                 className="w-full text-left px-4 py-3 hover:bg-blue-900/20 flex items-center justify-between border-b border-gray-100 last:border-0 disabled:opacity-50"
                                             >
@@ -235,7 +235,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                             className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="member">Member</option>
-                            <option value="admin">Admin</option>
+                            {currentUserRole === "owner" && <option value="admin">Admin</option>}
                         </select>
                     </div>
 
@@ -301,7 +301,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                                             className="px-2 py-1 text-xs border border-white/10 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 capitalize bg-white/5 backdrop-blur-md border border-white/10 text-white disabled:opacity-50"
                                         >
                                             <option value="member">Member</option>
-                                            <option value="admin">Admin</option>
+                                            {currentUserRole === "owner" && <option value="admin">Admin</option>}
                                         </select>
                                     ) : (
                                         <span

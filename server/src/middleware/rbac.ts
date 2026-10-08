@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { Types } from "mongoose";
 import { Project } from "../models/Project.js";
 import type { IProject } from "../models/Project.js";
-import { ProjectRole, AppRole, PERMISSIONS, type PermissionKey } from "../types/roles.js";
+import { ProjectRole, PERMISSIONS, type PermissionKey } from "../types/roles.js";
 import { ApiError } from "../utils/ApiError.js";
 
 declare global {
@@ -37,13 +37,6 @@ export const createProjectAccessMiddleware = (options?: { allowArchived?: boolea
 
             if (project.isArchived && !options?.allowArchived) {
                 throw ApiError.forbidden("This project has been archived");
-            }
-
-            // app_admin bypasses membership — attach owner role as a stand-in
-            // so requirePermission() checks don't break downstream
-            if (req.user?.role === AppRole.APP_ADMIN) {
-                req.projectMembership = { project, role: ProjectRole.OWNER };
-                return next();
             }
 
             // Find the user's role in this project

@@ -72,7 +72,7 @@ const ProjectPage = () => {
             priority: string;
             projectId: string;
         }) => {
-            const response = await api.post("/tasks", data);
+            const response = await api.post(`/projects/${projectId}/tasks`, data);
             return response.data;
         },
         onSuccess: () => {

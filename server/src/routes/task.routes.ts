@@ -18,7 +18,10 @@ import {
 const router = Router();
 
 // Deprecated alias
-router.post("/", authMiddleware, createTask);
+router.post("/", authMiddleware, (req, _res, next) => {
+    req.params.projectId = req.body?.projectId;
+    next();
+}, requireProjectAccess, requirePermission("TASK_CREATE"), createTask);
 
 export const projectTaskRoutes = Router({ mergeParams: true });
 

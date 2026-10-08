@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import User from "../models/User.js";
+import { publicUser } from "../utils/publicUser.js";
 import { env } from "../config/env.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -35,14 +36,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   res.status(201).json({
     message: "Account created successfully",
     token,
-    user: {
-      id: newUser._id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-      username: newUser.username,
-      email: newUser.email,
-      appRole: newUser.appRole,
-    },
+    user: publicUser(newUser),
   });
 });
 
@@ -66,14 +60,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   res.status(200).json({
     message: "Login successful",
     token,
-    user: {
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      username: user.username,
-      email: user.email,
-      appRole: user.appRole,
-    },
+    user: publicUser(user),
   });
 });
 
@@ -89,7 +76,7 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  res.status(200).json({ user });
+  res.status(200).json({ success: true, user: publicUser(user) });
 });
 
 
@@ -137,15 +124,7 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
     success: true,
     data: {
       token,
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        username: user.username,
-        appRole: user.appRole,
-        authProvider: user.authProvider,
-      },
+      user: publicUser(user),
     },
   });
 });
