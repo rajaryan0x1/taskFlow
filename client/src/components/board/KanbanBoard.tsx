@@ -5,17 +5,19 @@ interface KanbanBoardProps {
     todoTasks: Task[];
     inProgressTasks: Task[];
     doneTasks: Task[];
+    canMoveTask: (task: Task) => boolean;
     onTaskClick: (task: Task) => void;
     onTaskDrop?: (taskId: string, newStatus: "todo" | "in_progress" | "done") => void;
 }
 
-export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick, onTaskDrop }: KanbanBoardProps) => (
+export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick, onTaskDrop, canMoveTask }: KanbanBoardProps) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <KanbanColumn
             title="To Do"
             status="todo"
             tasks={todoTasks}
             onTaskDrop={onTaskDrop}
+            canMoveTask={canMoveTask}
             colorClass="bg-white/5"
             onTaskClick={onTaskClick}
         />
@@ -24,6 +26,7 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             status="in_progress"
             tasks={inProgressTasks}
             onTaskDrop={onTaskDrop}
+            canMoveTask={canMoveTask}
             colorClass="bg-blue-900/20"
             onTaskClick={onTaskClick}
         />
@@ -32,6 +35,7 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             status="done"
             tasks={doneTasks}
             onTaskDrop={onTaskDrop}
+            canMoveTask={canMoveTask}
             colorClass="bg-emerald-900/20"
             onTaskClick={onTaskClick}
         />

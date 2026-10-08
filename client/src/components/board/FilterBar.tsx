@@ -24,6 +24,7 @@ export const FilterBar = ({
     <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-4 mb-6 flex flex-wrap gap-4 items-center">
         <div className="flex-1 min-w-[200px]">
             <input
+                aria-label="Search tasks"
                 type="text"
                 placeholder="Search tasks..."
                 value={titleFilter}
@@ -32,11 +33,13 @@ export const FilterBar = ({
             />
         </div>
         <select
+            aria-label="Filter by assignee"
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
             className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
         >
             <option value="all">All Assignees</option>
+            <option value="unassigned">Unassigned</option>
             {projectMembers.map((member) => (
                 <option key={member.user._id} value={member.user._id}>
                     {member.user.firstName} {member.user.lastName}

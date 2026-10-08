@@ -33,7 +33,6 @@ router.get("/", authMiddleware, getMyProjects);
 router.get(
     "/:projectId",
     authMiddleware,
-    requireProjectAccess,
     requireArchivedProjectAccess,
     getProjectById
 );
@@ -43,7 +42,6 @@ router.patch(
     "/:projectId",
     authMiddleware,
     requireProjectAccess,
-    requireArchivedProjectAccess,
     requirePermission("PROJECT_UPDATE"),
     updateProject
 );
@@ -52,7 +50,6 @@ router.patch(
 router.delete(
     "/:projectId",
     authMiddleware,
-    requireArchivedProjectAccess,
     requireArchivedProjectAccess,
     requirePermission("PROJECT_DELETE"),
     deleteProject
@@ -75,7 +72,6 @@ router.post(
     "/:projectId/members",
     authMiddleware,
     requireProjectAccess,
-    requireArchivedProjectAccess,
     requirePermission("PROJECT_INVITE_MEMBER"),
     inviteMember
 );
@@ -85,7 +81,6 @@ router.delete(
     "/:projectId/members/:userId",
     authMiddleware,
     requireProjectAccess,
-    requireArchivedProjectAccess,
     requirePermission("PROJECT_REMOVE_MEMBER"),
     removeMember
 );
@@ -94,7 +89,6 @@ router.post(
     "/:projectId/transfer-ownership",
     authMiddleware,
     requireProjectAccess,
-    requireArchivedProjectAccess,
     requirePermission("PROJECT_TRANSFER_OWNERSHIP"),
     transferOwnership
 );

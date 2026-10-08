@@ -1,6 +1,5 @@
 export interface User {
-    id: string;
-    _id?: string;
+    _id: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -9,7 +8,6 @@ export interface User {
 }
 
 export interface Member {
-    _id: string;
     user: User;
     role: "owner" | "admin" | "member";
     joinedAt: string;
@@ -22,7 +20,7 @@ export interface Project {
     owner: User;
     members: Member[];
     createdAt: string;
-    archived?: boolean;
+    isArchived: boolean;
     updatedAt: string;
 }
 
@@ -37,7 +35,7 @@ export interface Task {
     createdBy: User | string;
     dueDate?: string;
     createdAt: string;
-    archived?: boolean;
+    isArchived: boolean;
     updatedAt: string;
 }
 
@@ -52,14 +50,25 @@ export interface Activity {
     _id: string;
     type: string;
     actor: User;
-    meta: any;
+    meta: Record<string, unknown>;
     createdAt: string;
 }
 
 export interface AppNotification {
     _id: string;
     type: "task_assigned" | "comment_mention" | "due_soon" | "member_invited";
-    payload: any;
+    payload: { projectId?: string; taskId?: string; taskTitle?: string; projectName?: string };
     read: boolean;
     createdAt: string;
 }
+
+export interface TaskInput {
+    title: string;
+    description?: string;
+    status?: Task["status"];
+    priority: Task["priority"];
+    assignee?: string | null;
+    dueDate?: string | null;
+    projectId?: string;
+}
+export type TaskUpdate = Partial<TaskInput>;

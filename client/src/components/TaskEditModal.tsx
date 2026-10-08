@@ -5,7 +5,8 @@ import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
 import { useAuthStore } from "../stores/authStore";
 import { getSocket } from "../socket/socket";
-import type { Task, Member, Activity, Comment } from "../types";
+import { taskPermissions } from "../utils/taskPermissions";
+import type { Task, Member, Activity, Comment, TaskUpdate } from "../types";
 
 interface TaskEditModalProps {
     task: Task;
@@ -13,12 +14,15 @@ interface TaskEditModalProps {
     currentUserRole?: "owner" | "admin" | "member";
     projectMembers: Member[];
     onClose: () => void;
+    projectArchived?: boolean;
 }
 
-const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRole }: TaskEditModalProps) => {
+const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRole, projectArchived = false }: TaskEditModalProps) => {
     const user = useAuthStore((state) => state.user);
-    const canEdit = currentUserRole === "owner" || currentUserRole === "admin" || (task.assignee && typeof task.assignee !== "string" && task.assignee._id === user?.id);
-    const canDelete = currentUserRole === "owner" || currentUserRole === "admin";
+    const permissions = taskPermissions(task, currentUserRole, user?.id, projectArchived);
+    const canEdit = permissions.edit;
+    const canStatus = permissions.status;
+    const canDelete = permissions.archive;
     const [title, setTitle] = useState(task.title);
     const [dueDate, setDueDate] = useState(task.dueDate ? task.dueDate.split("T")[0] : "");
     const [description, setDescription] = useState(task.description || "");
@@ -79,13 +83,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     }, [task._id]);
 
     const updateTaskMutation = useMutation({
-        mutationFn: async (data: {
-            title?: string;
-            description?: string;
-            status?: string;
-            priority?: string;
-            assignee?: string;
-        }) => {
+        mutationFn: async (data: TaskUpdate) => {
             const response = await api.patch(`/projects/${projectId}/tasks/${task._id}`, data);
             return response.data;
         },
@@ -105,17 +103,22 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
         },
     });
 
+    const restore = useMutation({
+        mutationFn: () => api.post(`/projects/${projectId}/tasks/${task._id}/restore`),
+        onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); onClose(); },
+    });
+
     const handleSubmit = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        const updates: any = {};
-        if (title !== task.title) updates.title = title;
-        if (description !== (task.description || "")) updates.description = description || null;
+        const updates: TaskUpdate = {};
+        if (canEdit && title !== task.title) updates.title = title;
+        if (canEdit && description !== (task.description || "")) updates.description = description;
         if (status !== task.status) updates.status = status;
-        if (priority !== task.priority) updates.priority = priority;
+        if (canEdit && priority !== task.priority) updates.priority = priority;
         const currentAssignee = task.assignee ? (typeof task.assignee === 'string' ? task.assignee : task.assignee._id) : "";
-        if (assignee !== currentAssignee) updates.assignee = assignee || null;
+        if (canEdit && assignee !== currentAssignee) updates.assignee = assignee || null;
         const oldDueDate = task.dueDate ? task.dueDate.split('T')[0] : "";
-        if (dueDate !== oldDueDate) updates.dueDate = dueDate || null;
+        if (canEdit && dueDate !== oldDueDate) updates.dueDate = dueDate || null;
 
         if (Object.keys(updates).length > 0) {
             updateTaskMutation.mutate(updates);
@@ -125,7 +128,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     };
 
     const handleDelete = () => {
-        if (window.confirm("Are you sure you want to delete this task?")) {
+        if (window.confirm("Archive this task? You can restore it later.")) {
             deleteTaskMutation.mutate();
         }
     };
@@ -181,7 +184,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             <select
                                 id="editStatus"
                                 value={status}
-                                disabled={!canEdit} onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
+                                disabled={!canStatus} onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
                                 className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="todo">To Do</option>
@@ -249,7 +252,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                         <button
                                             type="button"
                                             onClick={() => deleteCommentMutation.mutate(comment._id)}
-                                            style={{ display: (currentUserRole === "owner" || currentUserRole === "admin" || comment.author._id === user?.id) ? "block" : "none" }}
+                                            style={{ display: permissions.comment && (currentUserRole === "owner" || currentUserRole === "admin" || comment.author._id === user?.id) ? "block" : "none" }}
                                             className="text-red-600 hover:text-rose-300"
                                         >
                                             Delete
@@ -259,7 +262,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 </div>
                             ))}
                         </div>
-                        <form
+                        {permissions.comment && <form
                             className="mt-3 flex gap-2"
                             onSubmit={(event) => {
                                 event.preventDefault();
@@ -270,6 +273,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 value={commentBody}
                                 onChange={(event) => setCommentBody(event.target.value)}
                                 maxLength={2000}
+                                aria-label="Comment"
                                 placeholder="Add a comment"
                                 className="min-w-0 flex-1 rounded-md border border-white/10 px-3 py-2 text-sm"
                             />
@@ -280,7 +284,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             >
                                 Add
                             </button>
-                        </form>
+                        </form>}
                     </section>
 
                     <section className="mt-6 border-t border-white/10 pt-5">
@@ -311,6 +315,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </div>
                     )}
 
+                    {[deleteTaskMutation.error, addCommentMutation.error, deleteCommentMutation.error, restore.error].filter(Boolean).map((error, index) => <p key={index} role="alert" className="text-rose-300">{getErrorMessage(error)}</p>)}
+                    {permissions.restore && <button disabled={restore.isPending} onClick={() => restore.mutate()} className="rounded bg-indigo-600 px-4 py-2">Restore task</button>}
                     <div className="mt-6 flex justify-between">
                         <button
                             type="button"
@@ -319,7 +325,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             style={{ display: canDelete ? "block" : "none" }}
                             className="px-4 py-2 text-sm font-medium text-red-600 hover:bg-rose-900/20 border border-red-300 rounded-md disabled:opacity-50"
                         >
-                            {deleteTaskMutation.isPending ? "Deleting..." : "Delete Task"}
+                            {deleteTaskMutation.isPending ? "Archiving..." : "Archive Task"}
                         </button>
                         <div className="flex gap-3">
                             <button
@@ -332,8 +338,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                             <button
                                 type="button"
                                 onClick={handleSubmit}
-                                disabled={updateTaskMutation.isPending || !canEdit}
-                                style={{ display: canEdit ? "block" : "none" }}
+                                disabled={updateTaskMutation.isPending || !canStatus}
+                                style={{ display: canStatus ? "block" : "none" }}
                                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all rounded-md disabled:opacity-50"
                             >
                                 {updateTaskMutation.isPending ? "Saving..." : "Save Changes"}

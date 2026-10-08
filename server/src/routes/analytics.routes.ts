@@ -1,7 +1,7 @@
 
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { requireProjectAccess } from "../middleware/rbac.js";
+import { requireArchivedProjectAccess } from "../middleware/rbac.js";
 import {
     getProjectProgress,
     getUserPerformance,
@@ -12,7 +12,7 @@ const router = Router({ mergeParams: true });
 
 // All routes require auth and project membership
 router.use(authMiddleware);
-router.use(requireProjectAccess);
+router.use(requireArchivedProjectAccess);
 
 // GET /api/v1/projects/:projectId/analytics/progress
 router.get("/progress", getProjectProgress);

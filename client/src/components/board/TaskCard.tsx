@@ -1,11 +1,13 @@
+import { useNow } from "../../hooks/useNow";
 import type { Task } from "../../types";
 
 interface TaskCardProps {
     task: Task;
+    canMove: boolean;
     onClick: () => void;
 }
 
-export const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: string) => {
     switch (priority) {
         case "high":
             return "bg-rose-900/40 text-rose-300";
@@ -18,9 +20,15 @@ export const getPriorityColor = (priority: string) => {
     }
 };
 
-export const TaskCard = ({ task, onClick }: TaskCardProps) => (
+export const TaskCard = ({ task, onClick, canMove }: TaskCardProps) => {
+ const now = useNow();
+ return (
     <div
-        draggable
+        role="button"
+        tabIndex={0}
+        aria-label={`Open task: ${task.title}`}
+        onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onClick(); } }}
+        draggable={canMove}
         onDragStart={(e) => {
             e.dataTransfer.setData("taskId", task._id);
             e.dataTransfer.effectAllowed = "move";
@@ -39,12 +47,12 @@ export const TaskCard = ({ task, onClick }: TaskCardProps) => (
         )}
         {task.dueDate && (
             <div className={`mb-3 inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${
-                task.status !== "done" && new Date(task.dueDate).getTime() < Date.now()
+                task.status !== "done" && new Date(task.dueDate).getTime() < now
                     ? "bg-rose-900/40 text-rose-300"
                     : "bg-white/5 text-slate-300"
             }`}>
-                <span aria-hidden="true">{task.status !== "done" && new Date(task.dueDate).getTime() < Date.now() ? "!" : ""}</span>
-                {task.status !== "done" && new Date(task.dueDate).getTime() < Date.now() ? "Overdue" : `Due ${new Date(task.dueDate).toLocaleDateString()}`}
+                <span aria-hidden="true">{task.status !== "done" && new Date(task.dueDate).getTime() < now ? "!" : ""}</span>
+                {task.status !== "done" && new Date(task.dueDate).getTime() < now ? "Overdue" : `Due ${new Date(task.dueDate).toLocaleDateString()}`}
             </div>
         )}
         <div className="flex items-center justify-between">
@@ -62,3 +70,4 @@ export const TaskCard = ({ task, onClick }: TaskCardProps) => (
         </div>
     </div>
 );
+};

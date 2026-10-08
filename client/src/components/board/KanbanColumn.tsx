@@ -6,11 +6,12 @@ interface KanbanColumnProps {
     status: "todo" | "in_progress" | "done";
     tasks: Task[];
     colorClass: string;
+    canMoveTask: (task: Task) => boolean;
     onTaskClick: (task: Task) => void;
     onTaskDrop?: (taskId: string, newStatus: "todo" | "in_progress" | "done") => void;
 }
 
-export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, onTaskDrop }: KanbanColumnProps) => (
+export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, onTaskDrop, canMoveTask }: KanbanColumnProps) => (
     <div
         className={`${colorClass} rounded-2xl p-4 min-h-[200px] backdrop-blur-md border border-white/10 shadow-2xl`}
         onDragOver={(e) => {
@@ -36,6 +37,7 @@ export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, on
                 <TaskCard
                     key={task._id}
                     task={task}
+                    canMove={canMoveTask(task)}
                     onClick={() => onTaskClick(task)}
                 />
             ))}

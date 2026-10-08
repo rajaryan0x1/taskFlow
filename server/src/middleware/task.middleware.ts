@@ -34,3 +34,8 @@ export const loadTask = asyncHandler(async (req: Request, _res: Response, next: 
     req.task = task;
     next();
 });
+
+export const requireActiveTask = (req: Request, _res: Response, next: NextFunction) => {
+    if (req.task?.isArchived) return next(ApiError.forbidden("Archived tasks are read-only. Restore the task first."));
+    next();
+};

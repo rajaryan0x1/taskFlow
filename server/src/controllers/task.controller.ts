@@ -165,11 +165,12 @@ export const getTasksByProject = asyncHandler(
 
         // Parse query filters
         const filterResult = queryFilterSchema.safeParse(req.query);
-        const filters = filterResult.success ? filterResult.data : {};
+        if (!filterResult.success) throw ApiError.badRequest("Invalid task filters");
+        const filters = filterResult.data;
 
         const query: any = {
             project: projectId,
-            isArchived: false,
+            isArchived: req.query.archived === "true",
         };
 
         if (filters.status) query.status = filters.status;
@@ -595,3 +596,13 @@ export const getTaskActivity = asyncHandler(
         res.status(200).json({ success: true, data: activity });
     }
 );
+
+export const restoreTask = asyncHandler(async (req: Request, res: Response) => {
+    const task = req.task;
+    if (!task.isArchived) throw ApiError.badRequest("Task is not archived");
+    task.isArchived = false;
+    await task.save();
+    await logActivity(task.project, task._id, req.user!.id, "restored", {}, req.app.locals.io);
+    if (req.app.locals.io) broadcastTaskUpdate(req.app.locals.io, task.project.toString(), task);
+    res.json({ success: true, data: task });
+});

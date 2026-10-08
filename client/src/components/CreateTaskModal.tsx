@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { getErrorMessage } from "../utils/apiError";
-import type { Member } from "../types";
+import type { Member, TaskInput, Task } from "../types";
 
 interface CreateTaskModalProps {
     projectId: string;
     projectMembers: Member[];
     onClose: () => void;
-    onSubmit: (task: any) => void;
+    onSubmit: (task: TaskInput) => void;
     isPending: boolean;
     isError: boolean;
     error: unknown;
@@ -95,7 +95,7 @@ const CreateTaskModal = ({
                                 <select
                                     id="taskStatus"
                                     value={status}
-                                    onChange={(e) => setStatus(e.target.value as any)}
+                                    onChange={(e) => setStatus(e.target.value as Task["status"])}
                                     className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="todo">To Do</option>
@@ -111,7 +111,7 @@ const CreateTaskModal = ({
                                 <select
                                     id="taskPriority"
                                     value={priority}
-                                    onChange={(e) => setPriority(e.target.value as any)}
+                                    onChange={(e) => setPriority(e.target.value as Task["priority"])}
                                     className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="low">Low</option>

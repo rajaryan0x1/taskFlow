@@ -28,6 +28,7 @@ interface MembersPanelProps {
     projectId: string;
     members: Member[];
     currentUserRole: string;
+    readOnly?: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -39,9 +40,9 @@ const getRoleValue = (role: string) => {
     return 1;
 };
 
-const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps) => {
+const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }: MembersPanelProps) => {
     const currentUser = useAuthStore((state) => state.user);
-    const canManage = currentUserRole === "owner" || currentUserRole === "admin";
+    const canManage = !readOnly && (currentUserRole === "owner" || currentUserRole === "admin");
 
     // ── Invite state ──
     const [searchQuery, setSearchQuery] = useState("");
@@ -255,7 +256,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">
                     Project Members ({members.length})
                 </h3>
-                {currentUserRole !== "owner" && (
+                {!readOnly && currentUserRole !== "owner" && (
                     <button
                         onClick={handleLeave}
                         disabled={leaveMutation.isPending}
@@ -270,7 +271,7 @@ const MembersPanel = ({ projectId, members, currentUserRole }: MembersPanelProps
                         const isCurrentUser = member.user._id === currentUser?.id;
                         const isOwner = member.role === "owner";
                         const canRemove = canManage && !isOwner && !isCurrentUser && getRoleValue(currentUserRole) > getRoleValue(member.role);
-                        const canTransferOwnership = currentUserRole === "owner" && !isOwner && !isCurrentUser;
+                        const canTransferOwnership = !readOnly && currentUserRole === "owner" && !isOwner && !isCurrentUser;
 
                         return (
                             <div

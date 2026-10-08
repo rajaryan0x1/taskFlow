@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
-import { requireProjectAccess, requirePermission } from "../middleware/rbac.js";
-import { loadTask } from "../middleware/task.middleware.js";
+import { requireProjectAccess, requireArchivedProjectAccess, requirePermission } from "../middleware/rbac.js";
+import { loadTask, requireActiveTask } from "../middleware/task.middleware.js";
 import {
     createTask,
+    restoreTask,
     getTasksByProject,
     getTaskById,
     updateTask,
@@ -21,7 +22,7 @@ const router = Router();
 router.post("/", authMiddleware, (req, _res, next) => {
     req.params.projectId = req.body?.projectId;
     next();
-}, requireProjectAccess, requirePermission("TASK_CREATE"), createTask);
+}, requireProjectAccess, requireArchivedProjectAccess, requirePermission("TASK_CREATE"), createTask);
 
 export const projectTaskRoutes = Router({ mergeParams: true });
 
@@ -36,14 +37,14 @@ projectTaskRoutes.post(
 projectTaskRoutes.get(
     "/",
     authMiddleware,
-    requireProjectAccess,
+    requireArchivedProjectAccess,
     getTasksByProject
 );
 
 projectTaskRoutes.get(
     "/:taskId",
     authMiddleware,
-    requireProjectAccess,
+    requireArchivedProjectAccess,
     loadTask,
     getTaskById
 );
@@ -53,6 +54,7 @@ projectTaskRoutes.patch(
     authMiddleware,
     requireProjectAccess,
     loadTask,
+    requireActiveTask,
     updateTask
 );
 
@@ -70,6 +72,7 @@ projectTaskRoutes.patch(
     authMiddleware,
     requireProjectAccess,
     loadTask,
+    requireActiveTask,
     requirePermission("TASK_UPDATE_ANY"),
     assignTask
 );
@@ -77,7 +80,7 @@ projectTaskRoutes.patch(
 projectTaskRoutes.get(
     "/:taskId/comments",
     authMiddleware,
-    requireProjectAccess,
+    requireArchivedProjectAccess,
     loadTask,
     getTaskComments
 );
@@ -87,6 +90,7 @@ projectTaskRoutes.post(
     authMiddleware,
     requireProjectAccess,
     loadTask,
+    requireActiveTask,
     requirePermission("COMMENT_SEND"),
     createTaskComment
 );
@@ -96,15 +100,18 @@ projectTaskRoutes.delete(
     authMiddleware,
     requireProjectAccess,
     loadTask,
+    requireActiveTask,
     deleteTaskComment
 );
 
 projectTaskRoutes.get(
     "/:taskId/activity",
     authMiddleware,
-    requireProjectAccess,
+    requireArchivedProjectAccess,
     loadTask,
     getTaskActivity
 );
+
+projectTaskRoutes.post("/:taskId/restore", authMiddleware, requireProjectAccess, loadTask, requirePermission("TASK_UPDATE_ANY"), restoreTask);
 
 export default router;
