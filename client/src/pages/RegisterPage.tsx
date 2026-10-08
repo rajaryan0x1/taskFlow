@@ -74,7 +74,7 @@ const RegisterPage = () => {
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {registerMutation.isError && (
                         <div className="bg-rose-900/20 text-red-600 p-3 rounded text-sm">
-                            Registration failed. Please try again.
+                            {getErrorMessage(registerMutation.error, "Registration failed. Please try again.")}
                         </div>
                     )}
 
@@ -149,13 +149,14 @@ const RegisterPage = () => {
                                 id="password"
                                 type="password"
                                 required
-                                minLength={6}
+                                minLength={12}
+                                maxLength={72}
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="mt-1 block w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="••••••••"
                             />
-                            <p className="mt-1 text-xs text-slate-400">Minimum 6 characters</p>
+                            <p className="mt-1 text-xs text-slate-400">Use 12–72 characters (maximum 72 UTF-8 bytes)</p>
                         </div>
                     </div>
 
@@ -167,6 +168,7 @@ const RegisterPage = () => {
                         {registerMutation.isPending ? "Creating account..." : "Create account"}
                     </button>
 
+                    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <>
                     <div className="relative mt-4">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-white/10" />
@@ -189,6 +191,7 @@ const RegisterPage = () => {
                             theme="filled_black"
                         />
                     </div>
+                    </>}
                     {googleLoginMutation.isError && (
                         <div className="mt-2 text-sm text-red-500 text-center">
                             {getErrorMessage(googleLoginMutation.error, "Google Login failed")}

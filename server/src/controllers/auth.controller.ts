@@ -1,14 +1,13 @@
 import type { Request, Response } from "express";
 import User from "../models/User.js";
 import { publicUser } from "../utils/publicUser.js";
-import { env } from "../config/env.js";
 import { startSession, endSession } from "../services/session.js";
 import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
-import { OAuth2Client } from "google-auth-library";
+import { verifiedGoogleIdentity, resolveGoogleUser } from "../services/google.js";
 import { ApiError } from "../utils/ApiError.js";
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "dummy_client_id");
+
 
 
 // ─── Controllers
@@ -87,36 +86,8 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
     throw ApiError.badRequest("Google credential is required");
   }
 
-  const ticket = await googleClient.verifyIdToken({
-    idToken: credential,
-    audience: process.env.GOOGLE_CLIENT_ID || "dummy_client_id",
-  });
-
-  const payload = ticket.getPayload();
-  if (!payload || !payload.email) {
-    throw ApiError.unauthorized("Invalid Google token");
-  }
-
-  const emailStr = payload.email as string;
-  let user = await User.findOne({ email: emailStr });
-
-  if (!user) {
-    // Generate a default username
-    const username = (emailStr.split("@")[0] || "user") + Math.floor(Math.random() * 1000);
-    user = await User.create({
-      firstName: payload.given_name || "User",
-      lastName: payload.family_name || "",
-      email: emailStr,
-      username,
-      googleId: payload.sub,
-      authProvider: "google",
-    });
-  } else if (!user.googleId) {
-    // Link google account to existing user
-    user.googleId = payload.sub;
-    user.authProvider = "google";
-    await user.save();
-  }
+  const payload = await verifiedGoogleIdentity(credential);
+  const user = await resolveGoogleUser(payload);
 
   if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
   await startSession(req, res, user._id.toString());
@@ -127,4 +98,30 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
         user: publicUser(user),
     },
   });
+});
+
+export const linkGoogle = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id).select("+password");
+  if (!user?.password || typeof req.body.password !== "string" || !await bcrypt.compare(req.body.password, user.password)) {
+    throw ApiError.unauthorized("Confirm your current password to link Google");
+  }
+  const payload = await verifiedGoogleIdentity(req.body.credential);
+  if (payload.email!.toLowerCase() !== user.email || (user.googleId && user.googleId !== payload.sub)) {
+    throw ApiError.conflict("The Google identity does not match this account");
+  }
+  const linked = await User.findOne({ googleId: payload.sub });
+  if (linked && linked._id.toString() !== user._id.toString()) throw ApiError.conflict("Google identity is already linked");
+  user.googleId = payload.sub;
+  await user.save();
+  res.json({ success: true, user: publicUser(user) });
+});
+
+export const updateProfile = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id);
+  if (!user) throw ApiError.unauthorized("Please sign in");
+  user.firstName = req.body.firstName;
+  user.lastName = req.body.lastName;
+  user.needsProfileCompletion = false;
+  await user.save();
+  res.json({ success: true, user: publicUser(user) });
 });

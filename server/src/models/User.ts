@@ -7,6 +7,7 @@ export interface IUser extends Document {
   username: string;
   email: string;
   isDisabled: boolean;
+  needsProfileCompletion: boolean;
   password?: string;
   googleId?: string;
   authProvider: "local" | "google";
@@ -22,14 +23,14 @@ const UserSchema = new Schema<IUser>(
       type: String,
       required: [true, "First name is required"],
       trim: true,
-      minlength: 2,
+      minlength: 1,
       maxlength: 30,
     },
     lastName: {
       type: String,
       required: [true, "Last name is required"],
       trim: true,
-      minlength: 2,
+      minlength: 1,
       maxlength: 30,
     },
     username: {
@@ -47,6 +48,7 @@ const UserSchema = new Schema<IUser>(
       lowercase: true,
       trim: true,
     },
+    needsProfileCompletion: { type: Boolean, default: false },
     isDisabled: { type: Boolean, default: false },
     password: {
       type: String,

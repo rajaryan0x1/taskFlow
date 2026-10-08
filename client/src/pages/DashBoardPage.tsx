@@ -81,6 +81,7 @@ const DashboardPage = () => {
                         </div>
                         <div className="flex items-center gap-4">
                             <NotificationBell />
+                            <button onClick={() => navigate("/account")} className="text-sm text-indigo-300">Account</button>
                             <div className="text-sm text-slate-300">
                                 Welcome, <span className="font-medium text-white">{user?.firstName}</span>
                             </div>
@@ -153,6 +154,7 @@ const DashboardPage = () => {
                 )}
 
                 {/* Error State */}
+                {user?.needsProfileCompletion && <p className="mb-4 text-amber-200">Finish setting up your profile in <button className="underline" onClick={() => navigate("/account")}>Account settings</button>.</p>}
                 {logoutError && <p role="alert" className="text-rose-300">{logoutError}</p>}
                 {error && (
                     <div className="bg-rose-900/20 border border-red-200 rounded-lg p-4 text-red-600">

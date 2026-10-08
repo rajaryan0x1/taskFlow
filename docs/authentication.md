@@ -11,3 +11,5 @@ Migration: deployment invalidates legacy bearer-token sessions. Users must sign 
 The browser clears private caches, cancels pending queries, rejects responses from an older auth generation, and synchronizes account changes through a non-secret storage event. A failed logout request is surfaced rather than pretending server revocation succeeded.
 
 Design references: [OWASP session management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) and [Socket.IO middleware lifecycle](https://socket.io/docs/v4/middlewares/).
+
+Google sign-in is optional. Leave both Google client IDs empty to disable it; production rejects malformed IDs. Existing accounts are resolved by Google's stable subject, not by email alone. A verified email collision requires signing in to the existing account and explicitly linking Google with the current password. Missing profile names are completed through Account settings. See [Google's identity verification guidance](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token).

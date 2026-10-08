@@ -8,6 +8,7 @@ export interface AuthUser {
   lastName: string;
   email: string;
   username: string;
+  needsProfileCompletion?: boolean;
   appRole: "app_admin" | "user";
 }
 interface AuthState {

@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import { z } from "zod";
 
-dotenv.config({ quiet: true });
+if (process.env.NODE_ENV !== "test") dotenv.config({ quiet: true });
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -23,7 +23,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(5000),
   MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev"),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(336).default(168),
-  GOOGLE_CLIENT_ID: z.string().default(""),
+  GOOGLE_CLIENT_ID: z.preprocess(value => !isProduction && typeof value === "string" && !value.endsWith(".apps.googleusercontent.com") ? "" : value, z.string().regex(/^$|^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/, "Use a Google OAuth web client ID or leave blank").default("")),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   // Number of reverse proxies in front of the app (0 = none). Needed so that
   // rate limiting keys on the real client IP instead of the proxy's.

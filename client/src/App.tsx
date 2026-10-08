@@ -7,6 +7,7 @@ import LoginPage from "./pages/Login";
 import { Starfield } from "./components/Starfield";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashBoardPage";
+import AccountPage from "./pages/AccountPage";
 import ProjectPage from "./pages/ProjectPage";
 
 // Protected Route Component
@@ -48,6 +49,7 @@ function App() {
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="/projects/:projectId" element={<ProjectPage />} />
       </Route>
 

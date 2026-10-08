@@ -10,5 +10,6 @@ export function publicUser(user: IUser) {
     email: user.email,
     appRole: user.appRole,
     authProvider: user.authProvider,
+    needsProfileCompletion: user.needsProfileCompletion ?? false,
   };
 }

@@ -124,6 +124,7 @@ const LoginPage = () => {
                         {loginMutation.isPending ? "Signing in..." : "Sign in"}
                     </button>
 
+                    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <>
                     <div className="relative mt-4">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-white/10" />
@@ -146,6 +147,7 @@ const LoginPage = () => {
                             theme="filled_black"
                         />
                     </div>
+                    </>}
                     {googleLoginMutation.isError && (
                         <div className="mt-2 text-sm text-red-500 text-center">
                             {getErrorMessage(googleLoginMutation.error, "Google Login failed")}
