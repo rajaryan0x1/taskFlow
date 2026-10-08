@@ -3,11 +3,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { getErrorMessage } from "../utils/apiError";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, notifyAuthChange } from "../stores/authStore";
 import { GoogleLogin } from "@react-oauth/google";
 
 interface LoginResponse {
-    token: string;
     user: {
         id: string;
         firstName: string;
@@ -33,7 +32,8 @@ const LoginPage = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            setAuth(data.token, data.user);
+            setAuth(data.user);
+            notifyAuthChange();
             navigate("/");
         },
     });
@@ -45,7 +45,8 @@ const LoginPage = () => {
             return response.data.data;
         },
         onSuccess: (data) => {
-            setAuth(data.token, data.user);
+            setAuth(data.user);
+            notifyAuthChange();
             navigate("/");
         },
     });

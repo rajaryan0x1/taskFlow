@@ -22,8 +22,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(5000),
   MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev"),
-  JWT_SECRET: secret("JWT_SECRET", "dev-secret", 32),
-  JWT_EXPIRES_IN: z.string().default("1h"),
+  SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(336).default(168),
+  GOOGLE_CLIENT_ID: z.string().default(""),
   CORS_ORIGINS: z.string().default("http://localhost:5173"),
   // Number of reverse proxies in front of the app (0 = none). Needed so that
   // rate limiting keys on the real client IP instead of the proxy's.

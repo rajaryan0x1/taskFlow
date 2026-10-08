@@ -5,10 +5,10 @@ let socket: Socket | null = null;
 let currentProjectId: string | null = null;
 
 export const initSocket = (): Socket => {
-  const { token } = useAuthStore.getState();
+  const { user } = useAuthStore.getState();
 
-  if (!token) {
-    throw new Error("Cannot initialize socket without authentication token");
+  if (!user) {
+    throw new Error("Cannot initialize socket without a signed-in user");
   }
 
   if (socket?.connected) {
@@ -16,15 +16,12 @@ export const initSocket = (): Socket => {
   }
 
   if (socket && !socket.connected) {
-    socket.auth = { token };
     socket.connect();
     return socket;
   }
 
   socket = io(import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5000", {
-    auth: {
-      token,
-    },
+    withCredentials: true,
     autoConnect: true,
   });
 
@@ -51,6 +48,7 @@ export const getSocket = (): Socket | null => {
 };
 
 export const disconnectSocket = (): void => {
+  currentProjectId = null;
   if (socket) {
     socket.disconnect();
     socket = null;

@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { queryClient } from "../api/queryClient";
+import { disconnectSocket } from "../socket/socket";
 
-interface User {
+export interface AuthUser {
   id: string;
   firstName: string;
   lastName: string;
@@ -9,36 +10,45 @@ interface User {
   username: string;
   appRole: "app_admin" | "user";
 }
-
 interface AuthState {
-  token: string | null;
-  user: User | null;
-  setAuth: (token: string, user: User) => void;
+  user: AuthUser | null;
+  generation: number;
+  setAuth: (user: AuthUser) => void;
   logout: () => void;
   isAuthenticated: () => boolean;
 }
+function clearPrivateState() {
+  void queryClient.cancelQueries();
+  queryClient.clear();
+  disconnectSocket();
+}
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  user: null,
+  generation: 0,
+  setAuth: (user) => {
+    if (get().user?.id !== user.id) {
+      clearPrivateState();
+      set({ user, generation: get().generation + 1 });
+    } else set({ user });
+  },
+  logout: () => {
+    clearPrivateState();
+    set({ user: null, generation: get().generation + 1 });
+  },
+  isAuthenticated: () => !!get().user,
+}));
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      token: null,
-      user: null,
-
-      setAuth: (token, user) => {
-        set({ token, user });
-      },
-
-      logout: () => {
-        set({ token: null, user: null });
-        import("../socket/socket").then((m) => m.disconnectSocket());
-      },
-
-      isAuthenticated: () => {
-        return !!get().token;
-      },
-    }),
-    {
-      name: "auth-storage", // localStorage key
+// Remove credentials persisted by earlier versions. Only a non-secret event
+// marker is stored now; the session cookie is never readable by JavaScript.
+if (typeof window !== "undefined") {
+  window.localStorage.removeItem("auth-storage");
+  window.addEventListener("storage", (event) => {
+    if (event.key === "taskflow-auth-event") {
+      useAuthStore.getState().logout();
+      window.location.reload();
     }
-  )
-);
+  });
+}
+export function notifyAuthChange() {
+  window.localStorage.setItem("taskflow-auth-event", crypto.randomUUID());
+}

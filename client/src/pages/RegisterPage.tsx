@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
-import { useAuthStore } from "../stores/authStore";
+import { useAuthStore, notifyAuthChange } from "../stores/authStore";
 import { GoogleLogin } from "@react-oauth/google";
 import { getErrorMessage } from "../utils/apiError";
 
 interface RegisterResponse {
-    token: string;
     user: {
         id: string;
         firstName: string;
@@ -30,11 +29,12 @@ const RegisterPage = () => {
     
     const googleLoginMutation = useMutation({
         mutationFn: async (credential: string) => {
-            const response = await api.post<{ data: any }>("/auth/google", { credential });
+            const response = await api.post<{ data: RegisterResponse }>("/auth/google", { credential });
             return response.data.data;
         },
         onSuccess: (data) => {
-            setAuth(data.token, data.user);
+            setAuth(data.user);
+            notifyAuthChange();
             navigate("/");
         },
     });
@@ -51,7 +51,8 @@ const RegisterPage = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            setAuth(data.token, data.user);
+            setAuth(data.user);
+            notifyAuthChange();
             navigate("/");
         },
     });

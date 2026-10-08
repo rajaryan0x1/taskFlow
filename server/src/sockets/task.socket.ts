@@ -1,7 +1,7 @@
 // Socket logic for task
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
-import jwt from "jsonwebtoken";
+import { authenticateSession } from "../services/session.js";
 import { Types } from "mongoose";
 import { env } from "../config/env.js";
 import { Project } from "../models/Project.js";
@@ -10,43 +10,41 @@ interface AuthenticatedSocket extends Socket {
     data: {
         userId: string;
         role: "app_admin" | "user";
+        tokenHash: string;
+        expiresAt: Date;
     };
 }
 
 export const initializeSocket = (httpServer: HTTPServer): SocketIOServer => {
     const io = new SocketIOServer(httpServer, {
+        allowRequest: (req, done) => done(null, !!req.headers.origin && env.CORS_ORIGINS.includes(req.headers.origin)),
+        maxHttpBufferSize: 10000,
         cors: {
             origin: env.CORS_ORIGINS,
             credentials: true,
         },
     });
 
-    io.use((socket: Socket, next) => {
-        const token = socket.handshake.auth.token;
-        if (!token) {
-            return next(new Error("Authentication error: No token provided"));
-        }
-
+    io.use(async (socket: Socket, next) => {
         try {
-            const decoded = jwt.verify(token, env.JWT_SECRET) as {
-                sub: string;
-                role: "app_admin" | "user";
-            };
-
-            if (!decoded?.sub || !decoded?.role) {
-                return next(new Error("Authentication error: Invalid token payload"));
-            }
-
-            socket.data.userId = decoded.sub;
-            socket.data.role = decoded.role;
+            const session = await authenticateSession(socket.handshake.headers.cookie);
+            socket.data.userId = session.user._id.toString();
+            socket.data.role = session.user.appRole;
+            socket.data.tokenHash = session.tokenHash;
+            socket.data.expiresAt = session.expiresAt;
             next();
-        } catch {
-            return next(new Error("Authentication error: Invalid token"));
-        }
+        } catch { next(new Error("Authentication required")); }
     });
 
     io.on("connection", (socket: AuthenticatedSocket) => {
         socket.join(`user:${socket.data.userId}`);
+        socket.join(`session:${socket.data.tokenHash}`);
+        const expire = setTimeout(() => socket.disconnect(true), Math.max(0, Math.min(2147483647, socket.data.expiresAt.getTime() - Date.now())));
+        const revalidate = setInterval(async () => {
+            try { await authenticateSession(socket.handshake.headers.cookie); }
+            catch { socket.disconnect(true); }
+        }, 15000);
+        socket.on("disconnect", () => { clearTimeout(expire); clearInterval(revalidate); });
 
         socket.on("project:join", async (projectId: string) => {
             if (!projectId || typeof projectId !== "string" || !Types.ObjectId.isValid(projectId)) {

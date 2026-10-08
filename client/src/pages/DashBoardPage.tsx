@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import api from "../api/axios";
+import api, { signOut } from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
 import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
@@ -32,7 +32,8 @@ const DashboardPage = () => {
     const [projectName, setProjectName] = useState("");
     const [projectDescription, setProjectDescription] = useState("");
     const navigate = useNavigate();
-    const { user, logout } = useAuthStore();
+    const { user } = useAuthStore();
+    const [logoutError, setLogoutError] = useState("");
     const [showArchived, setShowArchived] = useState(false);
 
     const { data, isLoading, error } = useQuery({
@@ -64,9 +65,9 @@ const DashboardPage = () => {
         });
     };
 
-    const handleLogout = () => {
-        logout();
-        navigate("/login");
+    const handleLogout = async (all = false) => {
+        try { await signOut(all); navigate("/login"); }
+        catch { setLogoutError("Sign out failed. Please try again."); }
     };
 
     return (
@@ -84,11 +85,12 @@ const DashboardPage = () => {
                                 Welcome, <span className="font-medium text-white">{user?.firstName}</span>
                             </div>
                             <button
-                                onClick={handleLogout}
+                                onClick={() => void handleLogout()}
                                 className="text-sm text-slate-300 hover:text-white font-medium"
                             >
                                 Logout
                             </button>
+                            <button onClick={() => void handleLogout(true)} className="text-sm text-slate-300 hover:text-white">Sign out all devices</button>
                         </div>
                     </div>
                 </div>
@@ -151,6 +153,7 @@ const DashboardPage = () => {
                 )}
 
                 {/* Error State */}
+                {logoutError && <p role="alert" className="text-rose-300">{logoutError}</p>}
                 {error && (
                     <div className="bg-rose-900/20 border border-red-200 rounded-lg p-4 text-red-600">
                         Failed to load projects. Please try again.

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import User from "../models/User.js";
 import { publicUser } from "../utils/publicUser.js";
 import { env } from "../config/env.js";
-import jwt from "jsonwebtoken";
+import { startSession, endSession } from "../services/session.js";
 import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
 import { OAuth2Client } from "google-auth-library";
@@ -10,11 +10,6 @@ import { ApiError } from "../utils/ApiError.js";
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || "dummy_client_id");
 
-
-// ─── Helpers 
-function signToken(userId: string, role: "app_admin" | "user"): string {
-  return jwt.sign({ sub: userId, role }, env.JWT_SECRET, { expiresIn: "1h" });
-}
 
 // ─── Controllers
 
@@ -31,11 +26,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     password: hashedPassword,
   });
 
-  const token = signToken(newUser._id.toString(), newUser.appRole);
+  await startSession(req, res, newUser._id.toString());
 
   res.status(201).json({
     message: "Account created successfully",
-    token,
     user: publicUser(newUser),
   });
 });
@@ -55,18 +49,24 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     return;
   }
 
-  const token = signToken(user._id.toString(), user.appRole);
+  if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
+  await startSession(req, res, user._id.toString());
 
   res.status(200).json({
     message: "Login successful",
-    token,
     user: publicUser(user),
   });
 });
 
-export const logout = (req: Request, res: Response) => {
-  res.status(200).json({ message: "Logout successful" });
-};
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  await endSession(req, res);
+  res.status(200).json({ success: true, message: "Logout successful" });
+});
+
+export const logoutAll = asyncHandler(async (req: Request, res: Response) => {
+  await endSession(req, res, true);
+  res.status(200).json({ success: true, message: "All sessions signed out" });
+});
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(req.user!.id);
@@ -118,13 +118,13 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
     await user.save();
   }
 
-  const token = signToken(user._id.toString(), user.appRole);
+  if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
+  await startSession(req, res, user._id.toString());
 
   res.status(200).json({
     success: true,
     data: {
-      token,
-      user: publicUser(user),
+        user: publicUser(user),
     },
   });
 });

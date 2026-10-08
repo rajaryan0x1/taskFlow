@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "./stores/authStore";
 import api from "./api/axios";
+import type { AuthUser } from "./stores/authStore";
 import LoginPage from "./pages/Login";
 import { Starfield } from "./components/Starfield";
 import RegisterPage from "./pages/RegisterPage";
@@ -20,28 +21,17 @@ const ProtectedRoute = () => {
 };
 
 function App() {
-  const token = useAuthStore((state) => state.token);
   const setAuth = useAuthStore((state) => state.setAuth);
   const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      api.get("/auth/me")
-        .then((res) => {
-          if (res.data.user) {
-            setAuth(token, res.data.user);
-          }
-        })
-        .catch(() => {
-          // 401 will be handled by interceptor
-        })
-        .finally(() => {
-          setIsVerifying(false);
-        });
-    } else {
-      setIsVerifying(false);
-    }
-  }, []);
+    const controller = new AbortController();
+    api.get<{ user: AuthUser }>("/auth/me", { signal: controller.signal })
+      .then((res) => setAuth(res.data.user))
+      .catch(() => { /* Anonymous visitors can use the login and register routes. */ })
+      .finally(() => { if (!controller.signal.aborted) setIsVerifying(false); });
+    return () => controller.abort();
+  }, [setAuth]);
 
   if (isVerifying) {
     return <div className="flex h-screen items-center justify-center text-slate-200 bg-black"><Starfield />Loading...</div>;

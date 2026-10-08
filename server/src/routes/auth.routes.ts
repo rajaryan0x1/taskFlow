@@ -7,6 +7,7 @@ import {
   register,
   login,
   logout,
+  logoutAll,
   getMe,
   googleAuth,
 } from "../controllers/auth.controller.js";
@@ -44,6 +45,7 @@ const googleSchema = zod.object({
 router.post("/google", authLimiter, validate(googleSchema), googleAuth);
 
 router.post("/logout", logout);
+router.post("/logout-all", authMiddleware, logoutAll);
 router.get("/me", authMiddleware, getMe);
 
 export default router;

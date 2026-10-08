@@ -12,6 +12,7 @@
     "dev": "npm run dev:server & npm run dev:client",
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
-    "build": "npm run build:server && npm run build:client"
+    "build": "npm run build:server && npm run build:client",
+    "test": "npm run test --workspaces --if-present"
   }
 }

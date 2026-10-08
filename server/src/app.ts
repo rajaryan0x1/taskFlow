@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import morgan from 'morgan';
+import { requireTrustedOrigin } from './middleware/origin.middleware.js';
 
 import mainRouter from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
@@ -45,7 +46,7 @@ app.get('/health', (_req, res) => {
     });
 });
 
-app.use('/api/v1', apiLimiter, mainRouter);
+app.use('/api/v1', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, apiLimiter, requireTrustedOrigin, mainRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
