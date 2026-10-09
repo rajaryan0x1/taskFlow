@@ -141,7 +141,7 @@ export const createTask = asyncHandler(
             ...(status === TaskStatus.DONE && { completedAt: new Date() }),
             createdBy: req.user!.id,
         });
-        await logActivity(projectId, task._id, req.user!.id, "created", {}, req.app.locals.io);
+        await logActivity(projectId, task._id, req.user!.id, "created", { status }, req.app.locals.io);
         if (assignee) await createNotification(req.app.locals.io, assignee, "task_assigned", { taskId: task._id.toString(), taskTitle: task.title, projectId });
 
         const populatedTask = await Task.findById(task._id)

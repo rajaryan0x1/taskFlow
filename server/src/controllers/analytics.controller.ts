@@ -1,3 +1,5 @@
+import { Activity } from "../models/Activity.js";
+import { utcTimelineWindow } from "../utils/timeline.js";
 import type { Request, Response } from "express";
 import { Task, TaskStatus } from "../models/Task.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -74,14 +76,8 @@ export const getProjectProgress = asyncHandler(async (req: Request, res: Respons
                             userDoc: { $arrayElemAt: ["$userDetails", 0] },
                         },
                         in: {
-                            id: "$$userDoc._id",
-                            name: {
-                                $concat: [
-                                    "$$userDoc.firstName",
-                                    " ",
-                                    "$$userDoc.lastName",
-                                ],
-                            },
+                            id: { $ifNull: ["$$userDoc._id", "unassigned"] },
+                            name: { $ifNull: [{ $concat: ["$$userDoc.firstName", " ", "$$userDoc.lastName"] }, "Unassigned or former member"] },
                         },
                     },
                 },
@@ -160,19 +156,13 @@ export const getUserPerformance = asyncHandler(
                                 userDoc: { $arrayElemAt: ["$userDetails", 0] },
                             },
                             in: {
-                                id: "$$userDoc._id",
-                                name: {
-                                    $concat: [
-                                        "$$userDoc.firstName",
-                                        " ",
-                                        "$$userDoc.lastName",
-                                    ],
-                                },
-                                email: "$$userDoc.email",
+                                id: { $ifNull: ["$$userDoc._id", "unassigned"] },
+                                name: { $ifNull: [{ $concat: ["$$userDoc.firstName", " ", "$$userDoc.lastName"] }, "Unassigned or former member"] },
+                                email: { $ifNull: ["$$userDoc.email", ""] },
                             },
                         },
                     },
-                    tasksCreated: "$total",
+                    tasksAssigned: "$total",
                     tasksCompleted: "$completed",
                     tasksInProgress: "$inProgress",
                     tasksTodo: "$todo",
@@ -214,66 +204,24 @@ export const getTimeline = asyncHandler(
     async (req: Request, res: Response): Promise<void> => {
         const projectId = req.projectMembership!.project._id;
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        // Fetch created counts
-        const createdPipeline = await Task.aggregate([
-            {
-                $match: {
-                    project: new Types.ObjectId(projectId.toString()),
-                    isArchived: false,
-                    createdAt: { $gte: thirtyDaysAgo },
-                },
-            },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-                    count: { $sum: 1 },
-                },
-            }
+        const { start, end, days } = utcTimelineWindow();
+        const counts = await Activity.aggregate([
+            { $match: {
+                project: new Types.ObjectId(projectId.toString()),
+                createdAt: { $gte: start, $lt: end },
+                $or: [{ type: "created" }, { type: "status_changed", "meta.to": TaskStatus.DONE }],
+            } },
+            { $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt", timezone: "UTC" } },
+                created: { $sum: { $cond: [{ $eq: ["$type", "created"] }, 1, 0] } },
+                completed: { $sum: { $cond: [{ $or: [
+                    { $eq: ["$type", "status_changed"] },
+                    { $and: [{ $eq: ["$type", "created"] }, { $eq: ["$meta.status", TaskStatus.DONE] }] },
+                ] }, 1, 0] } },
+            } },
         ]);
-
-        // Fetch completed counts
-        const completedPipeline = await Task.aggregate([
-            {
-                $match: {
-                    project: new Types.ObjectId(projectId.toString()),
-                    isArchived: false,
-                    completedAt: { $gte: thirtyDaysAgo },
-                },
-            },
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$completedAt" } },
-                    count: { $sum: 1 },
-                },
-            }
-        ]);
-
-        const timelineMap = new Map<string, { date: string; created: number; completed: number }>();
-        
-        // Fill 30 days
-        for (let i = 0; i <= 30; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0] as string;
-            timelineMap.set(dateStr, { date: dateStr, created: 0, completed: 0 });
-        }
-
-        for (const item of createdPipeline) {
-            if (timelineMap.has(item._id)) {
-                timelineMap.get(item._id)!.created = item.count;
-            }
-        }
-
-        for (const item of completedPipeline) {
-            if (timelineMap.has(item._id)) {
-                timelineMap.get(item._id)!.completed = item.count;
-            }
-        }
-
-        const timelinePipeline = Array.from(timelineMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+        const byDate = new Map(counts.map(row => [row._id, row]));
+        const timelinePipeline = days.map(day => ({ ...day, created: byDate.get(day.date)?.created ?? 0, completed: byDate.get(day.date)?.completed ?? 0 }));
 
         // overdue tasks
         const overdueTasks = await Task.countDocuments({
@@ -287,6 +235,8 @@ export const getTimeline = asyncHandler(
             success: true,
             data: {
                 last30Days: timelinePipeline,
+                timezone: "UTC",
+                metric: "completion_events",
                 overdueTasks,
             },
         });

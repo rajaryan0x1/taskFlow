@@ -20,7 +20,7 @@ export interface ProgressData {
 
 export interface UserPerformance {
     user: { id: string; name: string; email: string };
-    tasksCreated: number;
+    tasksAssigned: number;
     tasksCompleted: number;
     tasksInProgress: number;
     tasksTodo: number;

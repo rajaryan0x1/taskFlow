@@ -114,8 +114,9 @@ const AnalyticsDashboard = ({ projectId }: AnalyticsDashboardProps) => {
 
             {/* ── 30-Day Timeline (bar chart) ── */}
             <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-6">
-                <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Activity — Last 30 Days</h3>
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Activity — Last 30 UTC Days</h3>
 
+                <p className="mb-3 text-sm text-slate-400">Creation and completion events over 30 UTC days. Reopened tasks can complete more than once; archiving preserves history.</p>
                 {timeline && timeline.last30Days.length > 0 ? (
                     <div className="overflow-x-auto">
                         <div className="flex items-end gap-1 min-w-[600px] h-40">
@@ -183,7 +184,7 @@ const AnalyticsDashboard = ({ projectId }: AnalyticsDashboardProps) => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-3 text-center text-slate-200">{u.tasksCreated}</td>
+                                        <td className="py-3 text-center text-slate-200">{u.tasksAssigned}</td>
                                         <td className="py-3 text-center text-green-700 font-medium">{u.tasksCompleted}</td>
                                         <td className="py-3 text-center text-blue-700">{u.tasksInProgress}</td>
                                         <td className="py-3 text-center text-slate-400">{u.tasksTodo}</td>

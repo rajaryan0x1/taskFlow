@@ -6,7 +6,7 @@ A real-time, role-based project management tool (Kanban board) built with the ME
 - **Real-time Collaboration**: Kanban board updates instantly for all connected clients via Socket.IO.
 - **Role-Based Access Control (RBAC)**: Projects support `owner`, `admin`, and `member` roles with granular permissions (e.g. only owners can delete a project, admins can manage members, members can only update tasks).
 - **Kanban Board**: Drag-and-drop tasks between To Do, In Progress, and Done columns.
-- **Activity & Analytics**: Rich activity logs track status changes, comments, and assignments. Analytics track team performance and burndown.
+- **Activity & Analytics**: Rich activity logs track status changes, comments, and assignments. Analytics show current assignment/status totals and 30-day creation/completion events in UTC. Reopened tasks can record multiple completions; this is not a burndown chart.
 - **Live Notifications**: Get in-app alerts for @mentions, task assignments, and project invitations.
 
 ## Quick Start (Workspaces)

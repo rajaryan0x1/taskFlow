@@ -161,6 +161,21 @@ describe("HTTP and real-time project boundaries", () => {
     const current = await api("owner", "get", path).expect(200);
     expect(current.body.data.title).toBe("First update");
   });
+  it("keeps completion history after reopening and archiving", async () => {
+    const id = await createProject();
+    const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Historical task", status: "done" }).expect(201);
+    const path = `/projects/${id}/tasks/${result.body.data._id}`;
+    await api("owner", "patch", path).set("If-Match", '"0"').send({ status: "todo" }).expect(200);
+    await api("owner", "patch", path).set("If-Match", '"1"').send({ status: "done" }).expect(200);
+    await api("owner", "delete", path).set("If-Match", '"2"').expect(200);
+    const timeline = await api("owner", "get", `/projects/${id}/analytics/timeline`).expect(200);
+    expect(timeline.body.data.last30Days).toHaveLength(30);
+    expect(timeline.body.data.last30Days.at(-1)).toMatchObject({ created: 1, completed: 2 });
+    await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Unassigned task" }).expect(201);
+    const members = await api("owner", "get", `/projects/${id}/analytics/users`).expect(200);
+    expect(members.body.data.users[0]).toMatchObject({ tasksAssigned: 1, user: { id: "unassigned" } });
+    expect(typeof members.body.data.users[0].user.name).toBe("string");
+  });
   it("rejects expired sessions even before TTL cleanup", async () => {
     const id = users.outsider!.id;
     await Session.updateMany({ user: id }, { expiresAt: new Date(Date.now() - 1000) });
