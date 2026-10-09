@@ -1,3 +1,4 @@
+import { Modal } from "./Modal";
 import { nextCursor, type Page } from "../api/pagination";
 import { events } from "@taskflow/contracts";
 import { useEffect, useState } from "react";
@@ -98,8 +99,11 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
             const response = await api.patch(`/projects/${projectId}/tasks/${task._id}`, data, versionConfig);
             return response.data;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["task", projectId, task._id] }),
+            ]);
             onClose();
         },
     });
@@ -108,15 +112,18 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
         mutationFn: async () => {
             await api.delete(`/projects/${projectId}/tasks/${task._id}`, versionConfig);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+        onSuccess: async () => {
+            await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
+                queryClient.invalidateQueries({ queryKey: ["task", projectId, task._id] }),
+            ]);
             onClose();
         },
     });
 
     const restore = useMutation({
         mutationFn: () => api.post(`/projects/${projectId}/tasks/${task._id}/restore`, {}, versionConfig),
-        onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); onClose(); },
+        onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }), queryClient.invalidateQueries({ queryKey: ["task", projectId, task._id] })]); onClose(); },
     });
 
     const handleSubmit = (e?: React.FormEvent) => {
@@ -145,12 +152,13 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     };
 
     return (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <Modal title="Task details" onClose={onClose}>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
                 <div className="flex justify-between items-start mb-4">
                     <h3 className="text-lg font-semibold text-white">Edit Task</h3>
                     <button
                         onClick={onClose}
+                        aria-label="Close dialog"
                         className="text-slate-500 hover:text-slate-300"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -171,7 +179,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 required
                                 value={title}
                                 disabled={!canEdit} onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
@@ -184,7 +192,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 value={description}
                                 disabled={!canEdit} onChange={(e) => setDescription(e.target.value)}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
 
@@ -196,7 +204,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 id="editStatus"
                                 value={status}
                                 disabled={!canStatus} onChange={(e) => setStatus(e.target.value as "todo" | "in_progress" | "done")}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="todo">To Do</option>
                                 <option value="in_progress">In Progress</option>
@@ -213,7 +221,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 type="date"
                                 value={dueDate}
                                 disabled={!canEdit} onChange={(e) => setDueDate(e.target.value)}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             />
                         </div>
                         <div>
@@ -224,7 +232,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 id="editPriority"
                                 value={priority}
                                 disabled={!canEdit} onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high")}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="low">Low</option>
                                 <option value="medium">Medium</option>
@@ -240,7 +248,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 id="editAssignee"
                                 value={assignee}
                                 disabled={!canEdit} onChange={(e) => setAssignee(e.target.value)}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Unassigned</option>
                                 {projectMembers.map((member) => (
@@ -363,7 +371,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                     </div>
                 </div>
             </div>
-        </div>
+        </Modal>
     );
 };
 

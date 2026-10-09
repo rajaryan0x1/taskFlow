@@ -182,6 +182,7 @@ const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }:
                         <div className="flex-1 relative" ref={dropdownRef}>
                             <input
                                 type="text"
+                                aria-label="Find a member to invite"
                                 value={searchQuery}
                                 onChange={(e) => {
                                     setSearchQuery(e.target.value);
@@ -189,7 +190,7 @@ const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }:
                                 }}
                                 onFocus={() => searchQuery.length >= 2 && setShowDropdown(true)}
                                 placeholder="Search by name, username, or email..."
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 text-sm"
                             />
 
                             {/* Search results dropdown */}
@@ -231,9 +232,10 @@ const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }:
                         </div>
 
                         <select
+                            aria-label="Invitation role"
                             value={inviteRole}
                             onChange={(e) => setInviteRole(e.target.value as "member" | "admin")}
-                            className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm text-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                         >
                             <option value="member">Member</option>
                             {currentUserRole === "owner" && <option value="admin">Admin</option>}
@@ -296,10 +298,11 @@ const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }:
                                 <div className="flex items-center gap-2">
                                     {canRemove ? (
                                         <select
+                                            aria-label={`Role for ${member.user.firstName} ${member.user.lastName}`}
                                             value={member.role}
                                             onChange={(e) => updateRoleMutation.mutate({ userId: member.user._id, role: e.target.value })}
                                             disabled={updateRoleMutation.isPending}
-                                            className="px-2 py-1 text-xs border border-white/10 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 capitalize bg-white/5 backdrop-blur-md border border-white/10 text-white disabled:opacity-50"
+                                            className="px-2 py-1 text-xs border border-white/10 rounded-md focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 capitalize bg-white/5 backdrop-blur-md border border-white/10 text-white disabled:opacity-50"
                                         >
                                             <option value="member">Member</option>
                                             {currentUserRole === "owner" && <option value="admin">Admin</option>}

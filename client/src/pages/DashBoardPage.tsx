@@ -1,3 +1,4 @@
+import { Modal } from "../components/Modal";
 import { nextCursor, type Page } from "../api/pagination";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -81,11 +82,11 @@ const DashboardPage = () => {
             {/* Header */}
             <header className="bg-white/5 backdrop-blur-md border border-white/10 text-white border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
+                    <div className="flex flex-wrap justify-between items-center min-h-16 gap-4 py-3">
                         <div className="flex items-center">
                             <h1 className="text-2xl font-bold text-white">TaskFlow</h1>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
                             <NotificationBell />
                             <button onClick={() => navigate("/account")} className="text-sm text-indigo-300">Account</button>
                             <div className="text-sm text-slate-300">
@@ -115,7 +116,7 @@ const DashboardPage = () => {
                     </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                     >
                         <svg
                             className="w-5 h-5 mr-2"
@@ -218,6 +219,9 @@ const DashboardPage = () => {
                         {data.map((project) => (
                             <div
                                 key={project._id}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); navigate(`/projects/${project._id}`); } }}
                                 onClick={() => navigate(`/projects/${project._id}`)}
                                 className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-2xl shadow-lg hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] hover:border-white/30 transition-all duration-300 hover:-translate-y-1 cursor-pointer group p-6"
                             >
@@ -257,7 +261,7 @@ const DashboardPage = () => {
 
             {/* Create Project Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <Modal title="Create project" onClose={() => setIsCreateModalOpen(false)}>
                     <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-xl max-w-md w-full p-6">
                         <h3 className="text-lg font-semibold text-white mb-4">
                             Create New Project
@@ -277,7 +281,7 @@ const DashboardPage = () => {
                                         required
                                         value={projectName}
                                         onChange={(e) => setProjectName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="My Awesome Project"
                                     />
                                 </div>
@@ -293,7 +297,7 @@ const DashboardPage = () => {
                                         value={projectDescription}
                                         onChange={(e) => setProjectDescription(e.target.value)}
                                         rows={3}
-                                        className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                         placeholder="What's this project about?"
                                     />
                                 </div>
@@ -327,7 +331,7 @@ const DashboardPage = () => {
                             </div>
                         </form>
                     </div>
-                </div>
+                </Modal>
             )}
         </div>
     );

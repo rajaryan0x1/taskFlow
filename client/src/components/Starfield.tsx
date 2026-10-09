@@ -9,7 +9,8 @@ export const Starfield = () => {
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
-        let animationFrameId: number;
+        let animationFrameId = 0;
+        const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
         let stars: { x: number; y: number; size: number; speed: number; opacity: number }[] = [];
 
         const resize = () => {
@@ -64,26 +65,26 @@ export const Starfield = () => {
                 if (star.opacity > 1) star.opacity = 1;
             });
 
-            animationFrameId = requestAnimationFrame(draw);
+            if (!motion.matches && !document.hidden) animationFrameId = requestAnimationFrame(draw);
         };
 
-        window.addEventListener("resize", () => {
-            resize();
-            initStars();
-        });
-
-        resize();
-        initStars();
-        draw();
-
+        const resizeScene = () => { resize(); initStars(); restart(); };
+        const restart = () => { cancelAnimationFrame(animationFrameId); draw(); };
+        window.addEventListener("resize", resizeScene);
+        motion.addEventListener("change", restart);
+        document.addEventListener("visibilitychange", restart);
+        resizeScene();
         return () => {
-            window.removeEventListener("resize", resize);
+            window.removeEventListener("resize", resizeScene);
+            motion.removeEventListener("change", restart);
+            document.removeEventListener("visibilitychange", restart);
             cancelAnimationFrame(animationFrameId);
         };
     }, []);
 
     return (
         <canvas
+            aria-hidden="true"
             ref={canvasRef}
             className="fixed inset-0 pointer-events-none -z-10 bg-black"
             style={{ width: '100vw', height: '100vh' }}

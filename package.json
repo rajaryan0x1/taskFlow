@@ -14,6 +14,10 @@
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
     "build": "npm run build:server && npm run build:client",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run build:server && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0"
   }
 }

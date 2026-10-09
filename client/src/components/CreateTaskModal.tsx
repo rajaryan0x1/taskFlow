@@ -1,3 +1,4 @@
+import { Modal } from "./Modal";
 import { useState } from "react";
 import { getErrorMessage } from "../utils/apiError";
 import type { Member, TaskInput, Task } from "../types";
@@ -42,12 +43,13 @@ const CreateTaskModal = ({
     };
 
     return (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <Modal title="Create task" onClose={onClose}>
             <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-xl w-full max-w-md p-6">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold text-white">Create New Task</h2>
                     <button
                         onClick={onClose}
+                        aria-label="Close dialog"
                         className="text-slate-500 hover:text-slate-400"
                     >
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +70,7 @@ const CreateTaskModal = ({
                                 required
                                 value={title}
                                 onChange={(e) => setTitle(e.target.value)}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="What needs to be done?"
                             />
                         </div>
@@ -82,7 +84,7 @@ const CreateTaskModal = ({
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 rows={3}
-                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Add more details..."
                             />
                         </div>
@@ -96,7 +98,7 @@ const CreateTaskModal = ({
                                     id="taskStatus"
                                     value={status}
                                     onChange={(e) => setStatus(e.target.value as Task["status"])}
-                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="todo">To Do</option>
                                     <option value="in_progress">In Progress</option>
@@ -112,7 +114,7 @@ const CreateTaskModal = ({
                                     id="taskPriority"
                                     value={priority}
                                     onChange={(e) => setPriority(e.target.value as Task["priority"])}
-                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="low">Low</option>
                                     <option value="medium">Medium</option>
@@ -130,7 +132,7 @@ const CreateTaskModal = ({
                                     id="taskAssignee"
                                     value={assignee}
                                     onChange={(e) => setAssignee(e.target.value)}
-                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="">Unassigned</option>
                                     {projectMembers.map((member) => (
@@ -150,7 +152,7 @@ const CreateTaskModal = ({
                                     type="date"
                                     value={dueDate}
                                     onChange={(e) => setDueDate(e.target.value)}
-                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                    className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 />
                             </div>
                         </div>
@@ -180,7 +182,7 @@ const CreateTaskModal = ({
                     </div>
                 </form>
             </div>
-        </div>
+        </Modal>
     );
 };
 
