@@ -74,7 +74,7 @@ const ProjectSchema = new Schema<IProject>(
         // Enforce exactly one owner at all times
         validator(members: IProjectMember[]) {
           const owners = members.filter((m) => m.role === ProjectRole.OWNER);
-          return owners.length === 1;
+          return owners.length === 1 && new Set(members.map(member => member.user.toString())).size === members.length;
         },
         message: "A project must have exactly one owner",
       },
@@ -85,6 +85,7 @@ const ProjectSchema = new Schema<IProject>(
     },
   },
   {
+    optimisticConcurrency: true,
     timestamps: true, // auto adds createdAt + updatedAt
   }
 );

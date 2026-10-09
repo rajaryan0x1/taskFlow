@@ -1,6 +1,7 @@
+import { nextCursor, type Page } from "../api/pagination";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import api, { signOut } from "../api/axios";
 import { useAuthStore } from "../stores/authStore";
 import { getErrorMessage } from "../utils/apiError";
@@ -36,13 +37,18 @@ const DashboardPage = () => {
     const [logoutError, setLogoutError] = useState("");
     const [showArchived, setShowArchived] = useState(false);
 
-    const { data, isLoading, error } = useQuery({
+    const projectsQuery = useInfiniteQuery({
         queryKey: ["projects", showArchived],
-        queryFn: async () => {
-            const response = await api.get<{ data: Project[] }>(`/projects?archived=${showArchived}`);
-            return response.data.data;
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: nextCursor<Project>,
+        queryFn: async ({ pageParam, signal }) => {
+            const response = await api.get<Page<Project>>(`/projects`, { signal, params: { archived: showArchived, cursor: pageParam } });
+            return response.data;
         },
     });
+
+    const { isLoading, error } = projectsQuery;
+    const data = projectsQuery.data?.pages.flatMap(page => page.data);
 
     const createProjectMutation = useMutation({
         mutationFn: async (data: { name: string; description?: string }) => {
@@ -246,6 +252,7 @@ const DashboardPage = () => {
                         ))}
                     </div>
                 )}
+                {projectsQuery.hasNextPage && <button className="mt-6 rounded bg-indigo-600 px-4 py-2" disabled={projectsQuery.isFetchingNextPage} onClick={() => void projectsQuery.fetchNextPage()}>Load more projects</button>}
             </main>
 
             {/* Create Project Modal */}

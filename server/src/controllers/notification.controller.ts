@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { parseInput, booleanQuery } from "../utils/input.js";
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
 import { Notification } from "../models/Notification.js";
@@ -5,15 +7,18 @@ import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
 export const getNotifications = asyncHandler(async (req: Request, res: Response): Promise<void> => {
-  const page = Math.max(Number(req.query.page) || 1, 1);
-  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+  const { page, limit, read } = parseInput(z.object({
+    page: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(10000)).optional().default(1),
+    limit: z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().min(1).max(50)).optional().default(20),
+    read: booleanQuery,
+  }), req.query);
   const filter: { user: string; read?: boolean } = { user: req.user!.id };
 
-  if (req.query.read === "true") filter.read = true;
-  if (req.query.read === "false") filter.read = false;
+  if (read === "true") filter.read = true;
+  if (read === "false") filter.read = false;
 
   const [notifications, total, unread] = await Promise.all([
-    Notification.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Notification.find(filter).sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit),
     Notification.countDocuments(filter),
     Notification.countDocuments({ user: req.user!.id, read: false }),
   ]);

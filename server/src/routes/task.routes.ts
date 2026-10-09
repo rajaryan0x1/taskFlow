@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireProjectAccess, requireArchivedProjectAccess, requirePermission } from "../middleware/rbac.js";
-import { loadTask, requireActiveTask } from "../middleware/task.middleware.js";
+import { loadTask, requireActiveTask, requireTaskVersion } from "../middleware/task.middleware.js";
 import {
     createTask,
     restoreTask,
@@ -55,6 +55,7 @@ projectTaskRoutes.patch(
     requireProjectAccess,
     loadTask,
     requireActiveTask,
+    requireTaskVersion,
     updateTask
 );
 
@@ -64,6 +65,7 @@ projectTaskRoutes.delete(
     requireProjectAccess,
     loadTask,
     requirePermission("TASK_DELETE"),
+    requireTaskVersion,
     deleteTask
 );
 
@@ -74,6 +76,7 @@ projectTaskRoutes.patch(
     loadTask,
     requireActiveTask,
     requirePermission("TASK_UPDATE_ANY"),
+    requireTaskVersion,
     assignTask
 );
 
@@ -112,6 +115,6 @@ projectTaskRoutes.get(
     getTaskActivity
 );
 
-projectTaskRoutes.post("/:taskId/restore", authMiddleware, requireProjectAccess, loadTask, requirePermission("TASK_UPDATE_ANY"), restoreTask);
+projectTaskRoutes.post("/:taskId/restore", authMiddleware, requireProjectAccess, loadTask, requirePermission("TASK_UPDATE_ANY"), requireTaskVersion, restoreTask);
 
 export default router;

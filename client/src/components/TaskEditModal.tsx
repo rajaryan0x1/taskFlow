@@ -1,6 +1,7 @@
+import { nextCursor, type Page } from "../api/pagination";
 import { events } from "@taskflow/contracts";
 import { useEffect, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 import { getErrorMessage } from "../utils/apiError";
 import { queryClient } from "../api/queryClient";
@@ -19,6 +20,8 @@ interface TaskEditModalProps {
 }
 
 const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRole, projectArchived = false }: TaskEditModalProps) => {
+    const [openedVersion] = useState(task.__v);
+    const versionConfig = { headers: { "If-Match": `"${openedVersion}"` } };
     const user = useAuthStore((state) => state.user);
     const permissions = taskPermissions(task, currentUserRole, user?.id, projectArchived);
     const canEdit = permissions.edit;
@@ -32,21 +35,28 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     const [assignee, setAssignee] = useState(task.assignee?._id || "");
     const [commentBody, setCommentBody] = useState("");
 
-    const { data: comments = [] } = useQuery({
+    const commentsQuery = useInfiniteQuery({
         queryKey: ["comments", task._id],
-        queryFn: async () => {
-            const response = await api.get<{ data: Comment[] }>(`/projects/${projectId}/tasks/${task._id}/comments`);
-            return response.data.data;
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: nextCursor<Comment>,
+        queryFn: async ({ pageParam, signal }) => {
+            const response = await api.get<Page<Comment>>(`/projects/${projectId}/tasks/${task._id}/comments`, { signal, params: { cursor: pageParam } });
+            return response.data;
         },
     });
 
-    const { data: activity = [] } = useQuery({
+    const activityQuery = useInfiniteQuery({
         queryKey: ["activity", task._id],
-        queryFn: async () => {
-            const response = await api.get<{ data: Activity[] }>(`/projects/${projectId}/tasks/${task._id}/activity`);
-            return response.data.data;
+        initialPageParam: undefined as string | undefined,
+        getNextPageParam: nextCursor<Activity>,
+        queryFn: async ({ pageParam, signal }) => {
+            const response = await api.get<Page<Activity>>(`/projects/${projectId}/tasks/${task._id}/activity`, { signal, params: { cursor: pageParam } });
+            return response.data;
         },
     });
+
+    const comments = commentsQuery.data?.pages.flatMap(page => page.data) ?? [];
+    const activity = activityQuery.data?.pages.flatMap(page => page.data) ?? [];
 
     const addCommentMutation = useMutation({
         mutationFn: async (body: string) => {
@@ -85,7 +95,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
 
     const updateTaskMutation = useMutation({
         mutationFn: async (data: TaskUpdate) => {
-            const response = await api.patch(`/projects/${projectId}/tasks/${task._id}`, data);
+            const response = await api.patch(`/projects/${projectId}/tasks/${task._id}`, data, versionConfig);
             return response.data;
         },
         onSuccess: () => {
@@ -96,7 +106,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
 
     const deleteTaskMutation = useMutation({
         mutationFn: async () => {
-            await api.delete(`/projects/${projectId}/tasks/${task._id}`);
+            await api.delete(`/projects/${projectId}/tasks/${task._id}`, versionConfig);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
@@ -105,7 +115,7 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
     });
 
     const restore = useMutation({
-        mutationFn: () => api.post(`/projects/${projectId}/tasks/${task._id}/restore`),
+        mutationFn: () => api.post(`/projects/${projectId}/tasks/${task._id}/restore`, {}, versionConfig),
         onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); onClose(); },
     });
 
@@ -263,6 +273,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                 </div>
                             ))}
                         </div>
+                        {commentsQuery.hasNextPage && <button disabled={commentsQuery.isFetchingNextPage} onClick={() => void commentsQuery.fetchNextPage()}>Older comments</button>}
+                        {commentsQuery.isError && <p role="alert">{getErrorMessage(commentsQuery.error)}</p>}
                         {permissions.comment && <form
                             className="mt-3 flex gap-2"
                             onSubmit={(event) => {
@@ -310,6 +322,8 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                         </div>
                     </section>
 
+                    {activityQuery.hasNextPage && <button disabled={activityQuery.isFetchingNextPage} onClick={() => void activityQuery.fetchNextPage()}>Older activity</button>}
+                    {activityQuery.isError && <p role="alert">{getErrorMessage(activityQuery.error)}</p>}
                     {updateTaskMutation.isError && (
                         <div className="mt-4 bg-rose-900/20 text-red-600 p-3 rounded text-sm">
                             {getErrorMessage(updateTaskMutation.error, "Failed to update task")}

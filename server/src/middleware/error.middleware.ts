@@ -44,6 +44,11 @@ export const errorHandler = (
         return;
     }
 
+    if (err instanceof mongoose.Error.VersionError) {
+        send(res, 409, "This record changed. Refresh and try again.");
+        return;
+    }
+
     // Invalid ObjectId or type in a query (e.g. ?assignee=abc)
     if (err instanceof mongoose.Error.CastError) {
         send(res, 400, `Invalid value for "${err.path}"`);

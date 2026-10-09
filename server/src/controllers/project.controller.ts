@@ -1,3 +1,4 @@
+import { parseInput, cursorSchema, cursorFilter, pageResult, booleanQuery, objectId } from "../utils/input.js";
 import { events } from "@taskflow/contracts";
 import type { Request, Response } from "express";
 import zod from "zod";
@@ -16,18 +17,18 @@ import { createNotification } from "../utils/notifications.js";
 //  Validation Schema 
 
 const createProjectSchema = zod.object({
-    name: zod.string().min(1).max(100),
-    description: zod.string().max(1000).optional()
+    name: zod.string().trim().min(2).max(100),
+    description: zod.string().trim().max(500).optional()
 })
 
 const updateProjectSchema = zod.object({
-    name: zod.string().min(1).max(100).optional(),
-    description: zod.string().max(1000).optional()
+    name: zod.string().trim().min(2).max(100).optional(),
+    description: zod.string().trim().max(500).optional()
 })
 
 
 const inviteMemberSchema = zod.object({
-    userId: zod.string().min(1, "User ID is required"),
+    userId: objectId,
     role: zod.enum([ProjectRole.ADMIN, ProjectRole.MEMBER]).default(ProjectRole.MEMBER)
 })
 
@@ -70,21 +71,22 @@ export const createProject = asyncHandler(async (req: Request, res: Response): P
 
 export const getMyProjects = asyncHandler(async (req: Request, res: Response): Promise<void> => {
 
-    const includeArchived = req.query.archived === "true";
+    const { cursor, limit, archived } = parseInput(cursorSchema.extend({ archived: booleanQuery }), req.query);
+    const includeArchived = archived === "true";
     const query: any = {
         "members.user": req.user!.id,
+        ...cursorFilter(cursor),
     };
 
     if (!includeArchived) {
         query.isArchived = false
     }
 
-    const projects = await Project.find(query).populate("owner", "firstName  lastName email  username").populate("members.user", "firstName lastName email username").sort({ updatedAt: -1 });
+    const projects = await Project.find(query).populate("owner", "firstName  lastName email  username").populate("members.user", "firstName lastName email username").sort({ _id: -1 }).limit(limit + 1);
 
     res.status(200).json({
         success: true,
-        count: projects.length,
-        data: projects
+        ...pageResult(projects, limit)
     });
 
 }

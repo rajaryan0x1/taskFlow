@@ -25,6 +25,7 @@ export interface Project {
 }
 
 export interface Task {
+    __v: number;
     _id: string;
     title: string;
     description: string;

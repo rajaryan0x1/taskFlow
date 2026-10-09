@@ -1,3 +1,4 @@
+import { parseInput, cursorSchema, cursorFilter, pageResult, booleanQuery, dateInput, objectId, escapeRegex } from "../utils/input.js";
 import type { Request, Response } from "express";
 import zod from "zod";
 import { Task, TaskStatus, TaskPriority } from "../models/Task.js";
@@ -21,7 +22,7 @@ import { broadcastCommentCreated, broadcastCommentDeleted } from "../sockets/tas
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
 const createTaskSchema = zod.object({
-    title: zod.string().min(2).max(150),
+    title: zod.string().trim().min(2).max(150),
     description: zod.string().max(1000).optional(),
     status: zod
         .enum([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE])
@@ -30,12 +31,12 @@ const createTaskSchema = zod.object({
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .default(TaskPriority.MEDIUM),
     assignee: zod.string().nullable().optional(),
-    dueDate: zod.string().nullable().optional(),
+    dueDate: dateInput,
     projectId: zod.string().optional(),
 });
 
 const updateTaskSchema = zod.object({
-    title: zod.string().min(2).max(150).optional(),
+    title: zod.string().trim().min(2).max(150).optional(),
     description: zod.string().max(1000).optional(),
     status: zod
         .enum([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE])
@@ -44,7 +45,7 @@ const updateTaskSchema = zod.object({
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .optional(),
     assignee: zod.string().nullable().optional(),
-    dueDate: zod.string().nullable().optional(),
+    dueDate: dateInput,
 });
 
 const assignTaskSchema = zod.object({
@@ -68,11 +69,14 @@ const logActivity = async (
     return activity;
 };
 
-const queryFilterSchema = zod.object({
+const queryFilterSchema = cursorSchema.extend({
+    archived: booleanQuery,
+    q: zod.string().trim().max(150).optional(),
+    priorities: zod.string().regex(/^(low|medium|high)(,(low|medium|high))*$/).optional(),
     status: zod
         .enum([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE])
         .optional(),
-    assignee: zod.string().nullable().optional(),
+    assignee: zod.union([objectId, zod.literal("unassigned")]).optional(),
     priority: zod
         .enum([TaskPriority.LOW, TaskPriority.MEDIUM, TaskPriority.HIGH])
         .optional(),
@@ -165,28 +169,28 @@ export const getTasksByProject = asyncHandler(
         const projectId = req.projectMembership!.project._id;
 
         // Parse query filters
-        const filterResult = queryFilterSchema.safeParse(req.query);
-        if (!filterResult.success) throw ApiError.badRequest("Invalid task filters");
-        const filters = filterResult.data;
+        const filters = parseInput(queryFilterSchema, req.query);
 
         const query: any = {
             project: projectId,
-            isArchived: req.query.archived === "true",
+            isArchived: filters.archived === "true",
+            ...cursorFilter(filters.cursor),
         };
 
         if (filters.status) query.status = filters.status;
         if (filters.priority) query.priority = filters.priority;
-        if (filters.assignee) query.assignee = filters.assignee;
+        if (filters.assignee) query.assignee = filters.assignee === "unassigned" ? null : filters.assignee;
+        if (filters.q) query.title = new RegExp(escapeRegex(filters.q), "i");
+        if (filters.priorities) query.priority = { $in: filters.priorities.split(",") };
 
         const tasks = await Task.find(query)
             .populate("assignee", "firstName lastName email username")
             .populate("createdBy", "firstName lastName email username")
-            .sort({ createdAt: -1 });
+            .sort({ _id: -1 }).limit(filters.limit + 1);
 
         res.status(200).json({
             success: true,
-            count: tasks.length,
-            data: tasks,
+            ...pageResult(tasks, filters.limit),
         });
     }
 );
@@ -498,11 +502,12 @@ export const getTaskComments = asyncHandler(
 
         const task = req.task;
 
-        const comments = await Comment.find({ task: taskId })
+        const { cursor, limit } = parseInput(cursorSchema, req.query);
+        const comments = await Comment.find({ task: taskId, ...cursorFilter(cursor) })
             .populate("author", "firstName lastName username")
-            .sort({ createdAt: 1 });
+            .sort({ _id: -1 }).limit(limit + 1);
 
-        res.status(200).json({ success: true, data: comments });
+        res.status(200).json({ success: true, ...pageResult(comments, limit) });
     }
 );
 
@@ -593,11 +598,12 @@ export const getTaskActivity = asyncHandler(
 
         const task = req.task;
 
-        const activity = await Activity.find({ task: taskId })
+        const { cursor, limit } = parseInput(cursorSchema, req.query);
+        const activity = await Activity.find({ task: taskId, ...cursorFilter(cursor) })
             .populate("actor", "firstName lastName username")
-            .sort({ createdAt: -1 });
+            .sort({ _id: -1 }).limit(limit + 1);
 
-        res.status(200).json({ success: true, data: activity });
+        res.status(200).json({ success: true, ...pageResult(activity, limit) });
     }
 );
 

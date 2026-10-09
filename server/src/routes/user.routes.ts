@@ -1,3 +1,5 @@
+import { z } from "zod";
+import { parseInput } from "../utils/input.js";
 import { Router } from "express";
 import type { Request, Response } from "express";
 import rateLimit from "express-rate-limit";
@@ -27,7 +29,7 @@ router.get(
     authMiddleware,
     searchLimiter,
     asyncHandler(async (req: Request, res: Response): Promise<void> => {
-        const query = (req.query.q as string | undefined)?.trim() ?? "";
+        const { q: query } = parseInput(z.object({ q: z.string().trim().max(100).optional().default("") }), req.query);
 
         if (query.length < 2 || query.length > 100) {
             res.status(200).json({ success: true, data: [] });

@@ -39,3 +39,10 @@ export const requireActiveTask = (req: Request, _res: Response, next: NextFuncti
     if (req.task?.isArchived) return next(ApiError.forbidden("Archived tasks are read-only. Restore the task first."));
     next();
 };
+
+export const requireTaskVersion = (req: Request, _res: Response, next: NextFunction) => {
+    const match = req.get("If-Match");
+    if (!match || !/^"\d+"$/.test(match)) return next(new ApiError("Reload the task and provide its version in If-Match", 428));
+    if (Number(match.slice(1, -1)) !== req.task.__v) return next(ApiError.conflict("This task changed since you opened it. Close and reopen it before saving."));
+    next();
+};

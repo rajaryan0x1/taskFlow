@@ -1,6 +1,7 @@
+import { nextCursor, type Page } from "../api/pagination";
 import { useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
 import { useProjectSocket } from "../hooks/useProjectSocket";
@@ -31,17 +32,23 @@ export default function ProjectPage() {
   const [priorityFilters, setPriorityFilters] = useState<Set<Task["priority"]>>(new Set());
   const now = useNow();
   const projectQuery = useQuery({ queryKey: ["project", projectId], queryFn: async ({ signal }) => (await api.get<{ data: Project }>(`/projects/${projectId}`, { signal })).data.data, enabled: !!projectId });
-  const tasksQuery = useQuery({ queryKey: ["tasks", projectId, archivedTasks], queryFn: async ({ signal }) => (await api.get<{ data: Task[] }>(`/projects/${projectId}/tasks?archived=${archivedTasks}`, { signal })).data.data, enabled: !!projectId && !!projectQuery.data });
+  const tasksQuery = useInfiniteQuery({
+    queryKey: ["tasks", projectId, archivedTasks, titleFilter, assigneeFilter, [...priorityFilters].sort().join(",")],
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: nextCursor<Task>,
+    queryFn: async ({ pageParam, signal }) => (await api.get<Page<Task>>(`/projects/${projectId}/tasks`, { signal, params: { archived: archivedTasks, cursor: pageParam, q: titleFilter || undefined, assignee: assigneeFilter === "all" ? undefined : assigneeFilter, priorities: priorityFilters.size ? [...priorityFilters].join(",") : undefined } })).data,
+    enabled: !!projectId && !!projectQuery.data,
+  });
   const detail = useQuery({ queryKey: ["task", projectId, taskId], queryFn: async ({ signal }) => (await api.get<{ data: Task }>(`/projects/${projectId}/tasks/${taskId}`, { signal })).data.data, enabled: !!projectQuery.data && !!taskId });
   const project = projectQuery.data;
   const role = project?.members.find(member => member.user._id === user?.id)?.role;
   const statusChange = useMutation({
-    mutationFn: async ({ taskId, status }: { taskId: string; status: Task["status"] }) => api.patch(`/projects/${projectId}/tasks/${taskId}`, { status }),
+    mutationFn: async ({ taskId, status, version }: { taskId: string; status: Task["status"]; version: number }) => api.patch(`/projects/${projectId}/tasks/${taskId}`, { status }, { headers: { "If-Match": `"${version}"` } }),
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); },
   });
   const create = useMutation({ mutationFn: async (data: TaskInput) => api.post(`/projects/${projectId}/tasks`, data), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); setCreateModalOpen(false); } });
   const connected = useProjectSocket(projectId);
-  const tasks = (tasksQuery.data ?? []).filter(task => task.title.toLowerCase().includes(titleFilter.toLowerCase())).filter(task => assigneeFilter === "all" || (assigneeFilter === "unassigned" ? !task.assignee : task.assignee?._id === assigneeFilter)).filter(task => !priorityFilters.size || priorityFilters.has(task.priority)).sort((a, b) => Number(b.status !== "done" && !!b.dueDate && new Date(b.dueDate).getTime() < now) - Number(a.status !== "done" && !!a.dueDate && new Date(a.dueDate).getTime() < now));
+  const tasks = (tasksQuery.data?.pages.flatMap(page => page.data) ?? []).filter(task => task.title.toLowerCase().includes(titleFilter.toLowerCase())).filter(task => assigneeFilter === "all" || (assigneeFilter === "unassigned" ? !task.assignee : task.assignee?._id === assigneeFilter)).filter(task => !priorityFilters.size || priorityFilters.has(task.priority)).sort((a, b) => Number(b.status !== "done" && !!b.dueDate && new Date(b.dueDate).getTime() < now) - Number(a.status !== "done" && !!a.dueDate && new Date(a.dueDate).getTime() < now));
   const closeTask = () => setParams(current => { current.delete("task"); return current; });
   if (projectQuery.isPending) return <main className="p-8" role="status">Loading project…</main>;
   if (projectQuery.isError || !project) return <main className="p-8"><Link to="/">Back to projects</Link><p role="alert" className="my-4">{getErrorMessage(projectQuery.error, "Project unavailable")}</p><button onClick={() => void projectQuery.refetch()}>Try again</button></main>;
@@ -60,7 +67,9 @@ export default function ProjectPage() {
       {activeTab === "analytics" ? <AnalyticsDashboard projectId={projectId!} /> : activeTab === "members" ? <MembersPanel projectId={projectId!} members={project.members} currentUserRole={role ?? "member"} readOnly={project.isArchived} /> : activeTab === "settings" && role ? <ProjectSettings key={`${project._id}:${project.isArchived}`} project={project} role={role} /> : <>
         <label className="mb-4 flex gap-2"><input type="checkbox" checked={archivedTasks} onChange={e => setArchivedTasks(e.target.checked)} />Show archived tasks</label>
         <FilterBar titleFilter={titleFilter} setTitleFilter={setTitleFilter} assigneeFilter={assigneeFilter} setAssigneeFilter={setAssigneeFilter} priorityFilters={priorityFilters} togglePriorityFilter={priority => setPriorityFilters(current => { const next = new Set(current); if (next.has(priority)) next.delete(priority); else next.add(priority); return next; })} clearFilters={() => { setTitleFilter(""); setAssigneeFilter("all"); setPriorityFilters(new Set()); }} projectMembers={project.members} />
-        {tasksQuery.isPending ? <p role="status">Loading tasks…</p> : tasksQuery.isError ? <div role="alert">{getErrorMessage(tasksQuery.error)} <button onClick={() => void tasksQuery.refetch()}>Retry</button></div> : <KanbanBoard todoTasks={tasks.filter(task => task.status === "todo")} inProgressTasks={tasks.filter(task => task.status === "in_progress")} doneTasks={tasks.filter(task => task.status === "done")} onTaskClick={task => setParams(current => { current.set("task", task._id); return current; })} canMoveTask={task => !statusChange.isPending && taskPermissions(task, role, user?.id, project.isArchived).status} onTaskDrop={(id, status) => { const task = tasks.find(t => t._id === id); if (task && task.status !== status && taskPermissions(task, role, user?.id, project.isArchived).status && !statusChange.isPending) statusChange.mutate({ taskId: id, status }); }} />}
+        {tasksQuery.isPending ? <p role="status">Loading tasks…</p> : tasksQuery.isError ? <div role="alert">{getErrorMessage(tasksQuery.error)} <button onClick={() => void tasksQuery.refetch()}>Retry</button></div> : <KanbanBoard todoTasks={tasks.filter(task => task.status === "todo")} inProgressTasks={tasks.filter(task => task.status === "in_progress")} doneTasks={tasks.filter(task => task.status === "done")} onTaskClick={task => setParams(current => { current.set("task", task._id); return current; })} canMoveTask={task => !statusChange.isPending && taskPermissions(task, role, user?.id, project.isArchived).status} onTaskDrop={(id, status) => { const task = tasks.find(t => t._id === id); if (task && task.status !== status && taskPermissions(task, role, user?.id, project.isArchived).status && !statusChange.isPending) statusChange.mutate({ taskId: id, status, version: task.__v }); }} />}
+        {tasksQuery.hasNextPage && <button disabled={tasksQuery.isFetchingNextPage} onClick={() => void tasksQuery.fetchNextPage()} className="mt-6 rounded bg-indigo-600 px-4 py-2">Load more tasks</button>}
+        <p className="mt-3 text-sm text-slate-400">Showing {tasks.length} loaded tasks. Filters search the full project.</p>
         {statusChange.isError && <p role="alert" className="mt-4 text-rose-300">{getErrorMessage(statusChange.error, "Task could not be moved")}</p>}
       </>}
       {taskId && detail.isError && <p role="alert" className="mt-4 text-rose-300">{getErrorMessage(detail.error)} <button onClick={closeTask}>Dismiss</button></p>}

@@ -99,13 +99,13 @@ describe("HTTP and real-time project boundaries", () => {
     await invite(id, "member");
     const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Test task", assignee: users.member!.id }).expect(201);
     const path = `/projects/${id}/tasks/${result.body.data._id}`;
-    await api("member", "patch", path).send({ title: "Forbidden" }).expect(403);
-    await api("member", "patch", path).send({ status: "done" }).expect(200);
-    await api("owner", "patch", path).send({ description: "" }).expect(200);
-    await api("owner", "delete", path).expect(200);
+    await api("member", "patch", path).set("If-Match", '"0"').send({ title: "Forbidden" }).expect(403);
+    await api("member", "patch", path).set("If-Match", '"0"').send({ status: "done" }).expect(200);
+    await api("owner", "patch", path).set("If-Match", '"1"').send({ description: "" }).expect(200);
+    await api("owner", "delete", path).set("If-Match", '"2"').expect(200);
     await api("member", "patch", path).send({ status: "todo" }).expect(403);
     await api("owner", "post", `${path}/comments`).send({ body: "No writes" }).expect(403);
-    await api("owner", "post", `${path}/restore`).expect(200);
+    await api("owner", "post", `${path}/restore`).set("If-Match", '"3"').expect(200);
     await api("owner", "get", path).expect(200);
   });
   it("denies mismatched task/project IDs", async () => {
@@ -124,7 +124,7 @@ describe("HTTP and real-time project boundaries", () => {
     const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Broadcast task" }).expect(201);
     expect((await created)._id).toBe(result.body.data._id);
     const assigned = event(member, events.taskUpdated);
-    await api("owner", "patch", `/projects/${id}/tasks/${result.body.data._id}/assign`).send({ assignee: users.member!.id }).expect(200);
+    await api("owner", "patch", `/projects/${id}/tasks/${result.body.data._id}/assign`).set("If-Match", '"0"').send({ assignee: users.member!.id }).expect(200);
     expect((await assigned).assignee._id).toBe(users.member!.id);
     const removed = event(member, events.projectEvicted);
     await api("owner", "delete", `/projects/${id}/members/${users.member!.id}`).expect(200);
@@ -133,6 +133,33 @@ describe("HTTP and real-time project boundaries", () => {
     member.emit(events.projectJoin, id);
     expect((await denied).message).toContain("Not authorized");
     owner.disconnect(); member.disconnect();
+  });
+  it("paginates without repeats and searches tasks beyond the first page", async () => {
+    const id = await createProject();
+    await Task.insertMany(Array.from({ length: 7 }, (_, index) => ({ title: `Task ${index}`, project: id, createdBy: users.owner!.id })));
+    const first = await api("owner", "get", `/projects/${id}/tasks?limit=3`).expect(200);
+    const second = await api("owner", "get", `/projects/${id}/tasks?limit=3&cursor=${first.body.pagination.nextCursor}`).expect(200);
+    expect(first.body.data).toHaveLength(3);
+    expect(second.body.data).toHaveLength(3);
+    const ids = [...first.body.data, ...second.body.data].map(task => task._id);
+    expect(new Set(ids).size).toBe(6);
+    const searched = await api("owner", "get", `/projects/${id}/tasks?q=Task%200`).expect(200);
+    expect(searched.body.data).toHaveLength(1);
+    await api("owner", "get", `/projects/${id}/tasks?limit=Infinity`).expect(400);
+    await api("owner", "get", `/projects/${id}/tasks?status=unknown`).expect(400);
+    await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Invalid date", dueDate: "2026-02-30" }).expect(400);
+    await api("owner", "get", "/notifications?page=1.5").expect(400);
+    await api("owner", "get", "/users/search?q=a&q=b").expect(400);
+  });
+  it("rejects stale saves instead of overwriting a collaborator", async () => {
+    const id = await createProject();
+    const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Original" }).expect(201);
+    const path = `/projects/${id}/tasks/${result.body.data._id}`;
+    await api("owner", "patch", path).send({ title: "No version" }).expect(428);
+    await api("owner", "patch", path).set("If-Match", '"0"').send({ title: "First update" }).expect(200);
+    await api("owner", "patch", path).set("If-Match", '"0"').send({ title: "Stale update" }).expect(409);
+    const current = await api("owner", "get", path).expect(200);
+    expect(current.body.data.title).toBe("First update");
   });
   it("rejects expired sessions even before TTL cleanup", async () => {
     const id = users.outsider!.id;

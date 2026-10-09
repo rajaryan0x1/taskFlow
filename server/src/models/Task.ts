@@ -85,6 +85,7 @@ const TaskSchema = new Schema<ITask>(
     },
   },
   {
+    optimisticConcurrency: true,
     timestamps: true, 
   }
 );
