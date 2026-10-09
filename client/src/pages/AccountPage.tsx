@@ -1,3 +1,4 @@
+import { googleClientId } from "../config";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -35,7 +36,7 @@ export default function AccountPage() {
       {profile.isSuccess && <p role="status" className="mt-3 text-emerald-300">Profile saved.</p>}
       {profile.isError && <p role="alert" className="mt-3 text-rose-300">{getErrorMessage(profile.error)}</p>}
     </form>
-    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <section className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
+    {googleClientId && <section className="mt-6 rounded-xl border border-white/10 bg-white/5 p-6">
       <h2 className="mb-3 text-lg font-semibold">Link Google sign-in</h2>
       <p className="mb-4 text-slate-300">For password accounts, confirm your current password and choose the Google account with the same email.</p>
       <label htmlFor="linkPassword">Current password</label>

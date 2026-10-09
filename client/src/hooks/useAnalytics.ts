@@ -1,3 +1,4 @@
+import { queryKeys } from "../api/queryKeys";
 import { useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 
@@ -41,7 +42,7 @@ export interface TimelineData {
 
 export const useProjectProgress = (projectId: string | undefined) =>
     useQuery({
-        queryKey: ["analytics", "progress", projectId],
+        queryKey: [...queryKeys.analytics(projectId ?? ""), "progress"],
         queryFn: async () => {
             const res = await api.get<{ data: ProgressData }>(
                 `/projects/${projectId}/analytics/progress`
@@ -53,7 +54,7 @@ export const useProjectProgress = (projectId: string | undefined) =>
 
 export const useUserPerformance = (projectId: string | undefined) =>
     useQuery({
-        queryKey: ["analytics", "users", projectId],
+        queryKey: [...queryKeys.analytics(projectId ?? ""), "users"],
         queryFn: async () => {
             const res = await api.get<{ data: { users: UserPerformance[] } }>(
                 `/projects/${projectId}/analytics/users`
@@ -65,7 +66,7 @@ export const useUserPerformance = (projectId: string | undefined) =>
 
 export const useTimeline = (projectId: string | undefined) =>
     useQuery({
-        queryKey: ["analytics", "timeline", projectId],
+        queryKey: [...queryKeys.analytics(projectId ?? ""), "timeline"],
         queryFn: async () => {
             const res = await api.get<{ data: TimelineData }>(
                 `/projects/${projectId}/analytics/timeline`

@@ -40,7 +40,7 @@ export default function ProjectPage() {
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); },
   });
   const create = useMutation({ mutationFn: async (data: TaskInput) => api.post(`/projects/${projectId}/tasks`, data), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }); setCreateModalOpen(false); } });
-  useProjectSocket(projectId);
+  const connected = useProjectSocket(projectId);
   const tasks = (tasksQuery.data ?? []).filter(task => task.title.toLowerCase().includes(titleFilter.toLowerCase())).filter(task => assigneeFilter === "all" || (assigneeFilter === "unassigned" ? !task.assignee : task.assignee?._id === assigneeFilter)).filter(task => !priorityFilters.size || priorityFilters.has(task.priority)).sort((a, b) => Number(b.status !== "done" && !!b.dueDate && new Date(b.dueDate).getTime() < now) - Number(a.status !== "done" && !!a.dueDate && new Date(a.dueDate).getTime() < now));
   const closeTask = () => setParams(current => { current.delete("task"); return current; });
   if (projectQuery.isPending) return <main className="p-8" role="status">Loading project…</main>;
@@ -55,6 +55,7 @@ export default function ProjectPage() {
       </nav>
     </div></header>
     <main className="mx-auto max-w-7xl px-4 py-8">
+      {!connected && <p role="status" className="mb-4 text-amber-200">Live updates are reconnecting. Changes will refresh when the connection returns.</p>}
       {project.isArchived && <p className="mb-4 rounded bg-amber-900/30 p-3 text-amber-200">This project is archived and read-only.</p>}
       {activeTab === "analytics" ? <AnalyticsDashboard projectId={projectId!} /> : activeTab === "members" ? <MembersPanel projectId={projectId!} members={project.members} currentUserRole={role ?? "member"} readOnly={project.isArchived} /> : activeTab === "settings" && role ? <ProjectSettings key={`${project._id}:${project.isArchived}`} project={project} role={role} /> : <>
         <label className="mb-4 flex gap-2"><input type="checkbox" checked={archivedTasks} onChange={e => setArchivedTasks(e.target.checked)} />Show archived tasks</label>

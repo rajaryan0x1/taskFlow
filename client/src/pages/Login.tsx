@@ -1,3 +1,4 @@
+import { googleClientId } from "../config";
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -124,7 +125,7 @@ const LoginPage = () => {
                         {loginMutation.isPending ? "Signing in..." : "Sign in"}
                     </button>
 
-                    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <>
+                    {googleClientId && <>
                     <div className="relative mt-4">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-white/10" />

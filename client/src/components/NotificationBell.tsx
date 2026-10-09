@@ -1,3 +1,4 @@
+import { events } from "@taskflow/contracts";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -49,9 +50,9 @@ const NotificationBell = () => {
         }
 
         const refresh = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        socket.on("notification:new", refresh);
+        socket.on(events.notificationNew, refresh);
         return () => {
-            socket.off("notification:new", refresh);
+            socket.off(events.notificationNew, refresh);
         };
     }, []);
 
@@ -110,7 +111,7 @@ const NotificationBell = () => {
                                 onClick={() => {
                                     if (!notification.read) markReadMutation.mutate(notification._id);
                                     if (notification.payload.projectId) {
-                                        navigate(`/projects/${notification.payload.projectId}`);
+                                        navigate(`/projects/${notification.payload.projectId}${notification.payload.taskId ? `?task=${notification.payload.taskId}` : ""}`);
                                         setOpen(false);
                                     }
                                 }}

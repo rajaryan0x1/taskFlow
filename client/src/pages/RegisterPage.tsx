@@ -1,3 +1,4 @@
+import { googleClientId } from "../config";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
@@ -168,7 +169,7 @@ const RegisterPage = () => {
                         {registerMutation.isPending ? "Creating account..." : "Create account"}
                     </button>
 
-                    {import.meta.env.VITE_GOOGLE_CLIENT_ID && <>
+                    {googleClientId && <>
                     <div className="relative mt-4">
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-white/10" />

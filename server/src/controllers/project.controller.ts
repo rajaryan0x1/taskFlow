@@ -1,3 +1,4 @@
+import { events } from "@taskflow/contracts";
 import type { Request, Response } from "express";
 import zod from "zod";
 import { Project } from "../models/Project.js";
@@ -130,6 +131,7 @@ export const updateProject = asyncHandler(
       project.description = updates.description;
 
     await project.save();
+    req.app.locals.io?.to(`project:${project._id}`).emit(events.projectChanged, { projectId: project._id.toString() });
 
     res.status(200).json({
       success: true,
@@ -159,6 +161,9 @@ export const deleteProject = asyncHandler(
       await Task.deleteMany({ project: project._id });
       await Comment.deleteMany({ task: { $in: taskIds } });
       await Activity.deleteMany({ project: project._id });
+      const io = req.app.locals.io;
+      io?.to(`project:${project._id}`).emit(events.projectDeleted, { projectId: project._id.toString() });
+      io?.in(`project:${project._id}`).socketsLeave(`project:${project._id}`);
       res.status(200).json({
         success: true,
         message: "Project permanently deleted",
@@ -167,6 +172,7 @@ export const deleteProject = asyncHandler(
       // Soft delete — just archive it
       project.isArchived = true;
       await project.save();
+      req.app.locals.io?.to(`project:${project._id}`).emit(events.projectChanged, { projectId: project._id.toString() });
 
       res.status(200).json({
         success: true,
@@ -227,7 +233,7 @@ export const inviteMember = asyncHandler(
     const io = req.app.locals.io;
     if (io && updatedProject) {
       const addedMember = updatedProject.members.find(
-        (member) => member.user.toString() === userId
+        (member) => member.user._id.toString() === userId
       );
       if (addedMember) broadcastMemberAdded(io, project._id.toString(), addedMember);
     }
@@ -352,6 +358,7 @@ export const restoreProject = asyncHandler(
     }
     project.isArchived = false;
     await project.save();
+    req.app.locals.io?.to(`project:${project._id}`).emit(events.projectChanged, { projectId: project._id.toString() });
     res.status(200).json({
       success: true,
       message: "Project restored successfully",
@@ -400,6 +407,7 @@ export const changeMemberRole = asyncHandler(
 
     member.role = newRole;
     await project.save();
+    req.app.locals.io?.to(`project:${project._id}`).emit(events.memberRoleChanged, { projectId: project._id.toString(), userId, role: newRole });
 
     res.status(200).json({
       success: true,

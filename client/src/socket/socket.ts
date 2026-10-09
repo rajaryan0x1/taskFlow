@@ -1,3 +1,4 @@
+import { events } from "@taskflow/contracts";
 import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "../stores/authStore";
 
@@ -28,7 +29,7 @@ export const initSocket = (): Socket => {
   socket.on("connect", () => {
     console.log("[socket.io] connected:", socket?.id);
     if (currentProjectId) {
-      socket?.emit("project:join", currentProjectId);
+      socket?.emit(events.projectJoin, currentProjectId);
     }
   });
 
@@ -59,11 +60,7 @@ export const joinProject = (projectId: string): void => {
   currentProjectId = projectId;
   const sock = getSocket();
   if (sock?.connected) {
-    sock.emit("project:join", projectId);
-  } else {
-    sock?.once("connect", () => {
-      sock.emit("project:join", projectId);
-    });
+    sock.emit(events.projectJoin, projectId);
   }
 };
 
@@ -73,7 +70,7 @@ export const leaveProject = (projectId: string): void => {
   }
   const sock = getSocket();
   if (sock?.connected) {
-    sock.emit("project:leave", projectId);
+    sock.emit(events.projectLeave, projectId);
   }
 };
 

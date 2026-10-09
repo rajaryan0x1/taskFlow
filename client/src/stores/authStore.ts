@@ -2,15 +2,8 @@ import { create } from "zustand";
 import { queryClient } from "../api/queryClient";
 import { disconnectSocket } from "../socket/socket";
 
-export interface AuthUser {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  username: string;
-  needsProfileCompletion?: boolean;
-  appRole: "app_admin" | "user";
-}
+export type { PublicUser as AuthUser } from "@taskflow/contracts";
+import type { PublicUser as AuthUser } from "@taskflow/contracts";
 interface AuthState {
   user: AuthUser | null;
   generation: number;

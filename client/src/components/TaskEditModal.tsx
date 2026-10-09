@@ -1,3 +1,4 @@
+import { events } from "@taskflow/contracts";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
@@ -72,13 +73,13 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
             queryClient.invalidateQueries({ queryKey: ["comments", task._id] });
             queryClient.invalidateQueries({ queryKey: ["activity", task._id] });
         };
-        socket.on("comment:created", refreshComments);
-        socket.on("comment:deleted", refreshComments);
-        socket.on("activity:created", refreshComments);
+        socket.on(events.commentCreated, refreshComments);
+        socket.on(events.commentDeleted, refreshComments);
+        socket.on(events.activityCreated, refreshComments);
         return () => {
-            socket.off("comment:created", refreshComments);
-            socket.off("comment:deleted", refreshComments);
-            socket.off("activity:created", refreshComments);
+            socket.off(events.commentCreated, refreshComments);
+            socket.off(events.commentDeleted, refreshComments);
+            socket.off(events.activityCreated, refreshComments);
         };
     }, [task._id]);
 

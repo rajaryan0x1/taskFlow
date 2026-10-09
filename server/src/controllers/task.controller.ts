@@ -138,6 +138,7 @@ export const createTask = asyncHandler(
             createdBy: req.user!.id,
         });
         await logActivity(projectId, task._id, req.user!.id, "created", {}, req.app.locals.io);
+        if (assignee) await createNotification(req.app.locals.io, assignee, "task_assigned", { taskId: task._id.toString(), taskTitle: task.title, projectId });
 
         const populatedTask = await Task.findById(task._id)
             .populate("project", "name")
@@ -391,6 +392,7 @@ export const deleteTask = asyncHandler(
                         await Task.findByIdAndDelete(taskId);
             await Comment.deleteMany({ task: taskId });
             await Activity.deleteMany({ task: taskId });
+            if (req.app.locals.io) broadcastTaskDelete(req.app.locals.io, task.project.toString(), taskId);
             res.status(200).json({
                 success: true,
                 message: "Task permanently deleted",
@@ -476,6 +478,8 @@ export const assignTask = asyncHandler(
             .populate("project", "name")
             .populate("assignee", "firstName lastName email username")
             .populate("createdBy", "firstName lastName email username");
+
+        if (req.app.locals.io) broadcastTaskUpdate(req.app.locals.io, task.project.toString(), updatedTask);
 
         res.status(200).json({
             success: true,

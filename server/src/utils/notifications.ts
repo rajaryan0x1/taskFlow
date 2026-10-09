@@ -1,3 +1,4 @@
+import { events } from "@taskflow/contracts";
 import type { Server as SocketIOServer } from "socket.io";
 import { Notification, type NotificationType } from "../models/Notification.js";
 
@@ -8,5 +9,5 @@ export const createNotification = async (
   payload: Record<string, unknown>
 ): Promise<void> => {
   const notification = await Notification.create({ user: userId, type, payload });
-  io?.to(`user:${userId}`).emit("notification:new", notification);
+  io?.to(`user:${userId}`).emit(events.notificationNew, notification);
 };
