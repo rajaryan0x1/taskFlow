@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -12,6 +12,8 @@ import { initializeSocket } from "../src/sockets/task.socket.js";
 import { Project } from "../src/models/Project.js";
 import { Task } from "../src/models/Task.js";
 import { Session } from "../src/models/Session.js";
+import User from "../src/models/User.js";
+import { hashToken, cookieName } from "../src/services/session.js";
 import { events } from "@taskflow/contracts";
 
 let mongo: MongoMemoryServer;
@@ -197,5 +199,48 @@ describe("HTTP and real-time project boundaries", () => {
     await api("admin", "post", "/auth/logout").expect(200);
     await disconnected;
     await api("admin", "get", "/auth/me").expect(401);
+  });
+  it("confirms the password, enforces policy, and revokes every old session and socket", async () => {
+    const signIn = (password: string) => request(server).post("/api/v1/auth/login")
+      .set("Origin", origin).set("X-TaskFlow-Client", "web").send({ email: "owner@example.com", password });
+    const another = await signIn("correct-horse-battery").expect(200);
+    const otherCookie = another.headers["set-cookie"][0].split(";")[0];
+    const socket = await socketFor("owner");
+    await api("owner", "post", "/auth/password").send({ currentPassword: "wrong", newPassword: "replacement-password" }).expect(403);
+    await api("owner", "get", "/auth/me").expect(200);
+    for (const newPassword of ["short", "😀".repeat(20), "correct-horse-battery"]) {
+      await api("owner", "post", "/auth/password").send({ currentPassword: "correct-horse-battery", newPassword }).expect(400);
+    }
+    const disconnected = event(socket, "disconnect");
+    const cleanup = vi.spyOn(Session, "deleteMany").mockRejectedValueOnce(new Error("Simulated cleanup outage"));
+    try {
+      const result = await api("owner", "post", "/auth/password").send({ currentPassword: "correct-horse-battery", newPassword: "replacement-password" }).expect(200);
+      expect(result.headers["set-cookie"][0]).toContain(`${cookieName}=;`);
+      expect(await Session.countDocuments({ user: users.owner!.id })).toBeGreaterThan(0);
+    } finally { cleanup.mockRestore(); }
+    await disconnected;
+    await api("owner", "get", "/auth/me").expect(401);
+    await request(server).get("/api/v1/auth/me").set("Cookie", otherCookie).expect(401);
+    await signIn("correct-horse-battery").expect(401);
+    const signedIn = await signIn("replacement-password").expect(200);
+    expect(signedIn.body.user).not.toHaveProperty("authVersion");
+    await request(server).post("/api/v1/auth/password")
+      .set("Cookie", signedIn.headers["set-cookie"][0].split(";")[0])
+      .set("Origin", origin).set("X-TaskFlow-Client", "web")
+      .send({ currentPassword: "replacement-password", newPassword: "another-replacement" }).expect(429);
+    const user = await User.findById(users.owner!.id);
+    expect(user!.authVersion).toBe(1);
+    // Simulate an old-credential login finishing after the revocation cleanup.
+    const lateToken = "b".repeat(64);
+    await Session.create({ user: users.owner!.id, tokenHash: hashToken(lateToken), authVersion: 0, expiresAt: new Date(Date.now() + 60000) });
+    await request(server).get("/api/v1/auth/me").set("Cookie", `${cookieName}=${lateToken}`).expect(401);
+  });
+  it("allows only one concurrent password change to win", async () => {
+    const responses = await Promise.all(["first-replacement", "second-replacement"].map(newPassword =>
+      api("member", "post", "/auth/password").send({ currentPassword: "correct-horse-battery", newPassword })));
+    expect(responses.filter(response => response.status === 200)).toHaveLength(1);
+    expect([401, 403, 409]).toContain(responses.find(response => response.status !== 200)!.status);
+    expect((await User.findById(users.member!.id))!.authVersion).toBe(1);
+    expect(await Session.countDocuments({ user: users.member!.id })).toBe(0);
   });
 });

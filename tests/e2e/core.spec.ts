@@ -92,3 +92,30 @@ test('invite a colleague and change their role from the member panel', async ({ 
   await page.getByRole('button', { name: 'members', exact: true }).click();
   await expect(page.getByLabel('Role for colleague Tester')).toHaveValue('admin');
 });
+
+test('change password with confirmation and sign in again', async ({ page }) => {
+  await page.goto('/register');
+  await page.getByLabel('First Name').fill('Password');
+  await page.getByLabel('Last Name').fill('Tester');
+  await page.getByLabel('Username').fill('password_tester');
+  await page.getByLabel('Email', { exact: true }).fill('password@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await page.getByRole('button', { name: 'Account', exact: true }).click();
+  await page.getByLabel('Current password', { exact: true }).fill('wrong-password');
+  await page.getByLabel('New password', { exact: true }).fill('new-correct-horse-battery');
+  await page.getByLabel('Confirm new password').fill('mismatched-password');
+  await page.getByRole('button', { name: 'Change password', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('New passwords do not match.');
+  await page.getByLabel('Confirm new password').fill('new-correct-horse-battery');
+  await page.getByRole('button', { name: 'Change password', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveText('Current password is incorrect');
+  await expect(page.getByRole('heading', { name: 'Account settings' })).toBeVisible();
+  await page.getByLabel('Current password', { exact: true }).fill('correct-horse-battery');
+  await page.getByRole('button', { name: 'Change password', exact: true }).click();
+  await expect(page.getByRole('status')).toHaveText('Password changed. Sign in with your new password.');
+  await page.getByLabel('Email', { exact: true }).fill('password@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('new-correct-horse-battery');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
+});

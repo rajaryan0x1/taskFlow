@@ -12,7 +12,7 @@ export function sessionToken(cookie: string | undefined) {
   const value = cookie?.split(";").map(part => part.trim()).find(part => part.startsWith(`${cookieName}=`))?.slice(cookieName.length + 1);
   return value && /^[a-f0-9]{64}$/.test(value) ? value : undefined;
 }
-export async function startSession(req: Request, res: Response, userId: string) {
+export async function startSession(req: Request, res: Response, userId: string, authVersion: number) {
   const previous = sessionToken(req.headers.cookie);
   if (previous) {
     await Session.deleteOne({ tokenHash: hashToken(previous) });
@@ -20,7 +20,9 @@ export async function startSession(req: Request, res: Response, userId: string) 
   }
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + env.SESSION_TTL_HOURS * 3600000);
-  await Session.create({ tokenHash: hashToken(token), user: userId, expiresAt });
+  // Use the version of the account whose credentials were verified, not a fresh
+  // lookup: a concurrent password change must invalidate this login as well.
+  await Session.create({ tokenHash: hashToken(token), user: userId, authVersion, expiresAt });
   res.cookie(cookieName, token, { ...cookieOptions, expires: expiresAt });
 }
 export async function authenticateSession(cookie: string | undefined) {
@@ -31,7 +33,13 @@ export async function authenticateSession(cookie: string | undefined) {
   if (!session) throw ApiError.unauthorized("Your session has expired. Please sign in again.");
   const user = await User.findById(session.user);
   if (!user || user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
+  if ((session.authVersion ?? 0) !== (user.authVersion ?? 0)) {
+    throw ApiError.unauthorized("Your credentials changed. Please sign in again.");
+  }
   return { user, tokenHash, expiresAt: session.expiresAt };
+}
+export function clearSessionCookie(res: Response) {
+  res.clearCookie(cookieName, cookieOptions);
 }
 export async function endSession(req: Request, res: Response, all = false) {
   const token = sessionToken(req.headers.cookie);
@@ -43,5 +51,5 @@ export async function endSession(req: Request, res: Response, all = false) {
     await Session.deleteOne({ tokenHash });
     req.app.locals.io?.in(`session:${tokenHash}`).disconnectSockets(true);
   }
-  res.clearCookie(cookieName, cookieOptions);
+  clearSessionCookie(res);
 }

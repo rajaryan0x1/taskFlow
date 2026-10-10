@@ -31,13 +31,25 @@ describe("revocable cookie sessions", () => {
     const disconnectSockets = vi.fn();
     const req = { headers: { cookie }, app: { locals: { io: { in: vi.fn(() => ({ disconnectSockets })) } } } } as unknown as Request;
     const res = { cookie: vi.fn() };
-    await startSession(req, res as unknown as Response, "user-id");
+    await startSession(req, res as unknown as Response, "user-id", 3);
     const [, newToken, options] = res.cookie.mock.calls[0]!;
     expect(newToken).toMatch(/^[a-f0-9]{64}$/);
     expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
-    expect(Session.create).toHaveBeenCalledWith(expect.objectContaining({ tokenHash: hashToken(newToken), user: "user-id" }));
+    expect(Session.create).toHaveBeenCalledWith(expect.objectContaining({ tokenHash: hashToken(newToken), user: "user-id", authVersion: 3 }));
     expect(Session.deleteOne).toHaveBeenCalledWith({ tokenHash: hashToken(token) });
     expect(disconnectSockets).toHaveBeenCalledWith(true);
+  });
+  it("rejects a session inserted after revocation with an older credential version", async () => {
+    vi.mocked(Session.findOne).mockResolvedValue({ user: "user-id", authVersion: 2, expiresAt: new Date() } as never);
+    vi.mocked(User.findById).mockResolvedValue({ isDisabled: false, authVersion: 3 } as never);
+    await expect(authenticateSession(cookie)).rejects.toMatchObject({ statusCode: 401 });
+  });
+  it("keeps legacy sessions valid until the account credentials change", async () => {
+    vi.mocked(Session.findOne).mockResolvedValue({ user: "user-id", expiresAt: new Date() } as never);
+    vi.mocked(User.findById).mockResolvedValue({ isDisabled: false } as never);
+    await expect(authenticateSession(cookie)).resolves.toMatchObject({ tokenHash: hashToken(token) });
+    vi.mocked(User.findById).mockResolvedValue({ isDisabled: false, authVersion: 1 } as never);
+    await expect(authenticateSession(cookie)).rejects.toMatchObject({ statusCode: 401 });
   });
   it("revokes all sessions and disconnects all user sockets", async () => {
     const disconnectSockets = vi.fn();

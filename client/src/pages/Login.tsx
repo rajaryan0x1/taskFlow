@@ -1,6 +1,6 @@
 import { googleClientId } from "../config";
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { getErrorMessage } from "../utils/apiError";
@@ -23,6 +23,9 @@ const LoginPage = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
+    const location = useLocation();
+    const notice = new URLSearchParams(location.search).get("passwordChanged") === "1"
+        ? "Password changed. Sign in with your new password." : "";
     const setAuth = useAuthStore((state) => state.setAuth);
 
 
@@ -78,6 +81,7 @@ const LoginPage = () => {
                     </h2>
                 </div>
 
+                {notice && <p role="status" className="text-emerald-300">{notice}</p>}
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {loginMutation.isError && (
                         <div className="bg-rose-900/20 text-red-600 p-3 rounded text-sm">

@@ -1,7 +1,9 @@
 import type { Request, Response } from "express";
 import User from "../models/User.js";
 import { publicUser } from "../utils/publicUser.js";
-import { startSession, endSession } from "../services/session.js";
+import { startSession, endSession, clearSessionCookie } from "../services/session.js";
+import { Session } from "../models/Session.js";
+import { log, safeError } from "../utils/logger.js";
 import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
 import { verifiedGoogleIdentity, resolveGoogleUser } from "../services/google.js";
@@ -25,7 +27,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     password: hashedPassword,
   });
 
-  await startSession(req, res, newUser._id.toString());
+  await startSession(req, res, newUser._id.toString(), newUser.authVersion ?? 0);
 
   res.status(201).json({
     message: "Account created successfully",
@@ -49,7 +51,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
-  await startSession(req, res, user._id.toString());
+  await startSession(req, res, user._id.toString(), user.authVersion ?? 0);
 
   res.status(200).json({
     message: "Login successful",
@@ -90,7 +92,7 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
   const user = await resolveGoogleUser(payload);
 
   if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
-  await startSession(req, res, user._id.toString());
+  await startSession(req, res, user._id.toString(), user.authVersion ?? 0);
 
   res.status(200).json({
     success: true,
@@ -124,4 +126,40 @@ export const updateProfile = asyncHandler(async (req: Request, res: Response) =>
   user.needsProfileCompletion = false;
   await user.save();
   res.json({ success: true, user: publicUser(user) });
+});
+
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const user = await User.findById(req.user!.id).select("+password");
+  if (!user || user.isDisabled || (user.authVersion ?? 0) !== req.user!.authVersion) {
+    throw ApiError.unauthorized("Please sign in again");
+  }
+  if (!user.password) throw ApiError.badRequest("Manage your password with your sign-in provider");
+  if (!await bcrypt.compare(req.body.currentPassword, user.password)) {
+    // A wrong confirmation is not an expired session; keep the form available.
+    throw ApiError.forbidden("Current password is incorrect");
+  }
+  if (await bcrypt.compare(req.body.newPassword, user.password)) {
+    throw ApiError.badRequest("Choose a different password");
+  }
+  const password = await bcrypt.hash(req.body.newPassword, 10);
+  const updated = await User.findOneAndUpdate({
+    _id: user._id,
+    password: user.password,
+    isDisabled: { $ne: true },
+    $or: [{ authVersion: req.user!.authVersion }, ...(req.user!.authVersion === 0 ? [{ authVersion: { $exists: false } }] : [])],
+  }, { $set: { password }, $inc: { authVersion: 1 } }, { returnDocument: "after" });
+  if (!updated) throw ApiError.conflict("Your account changed. Sign in again before retrying.");
+
+  // The atomic version increment is the revocation boundary. Even a late
+  // session insert or cleanup failure cannot make an old credential valid.
+  req.app.locals.io?.in(`user:${user._id}`).disconnectSockets(true);
+  clearSessionCookie(res);
+  try {
+    await Session.deleteMany({ user: user._id, $or: [
+      { authVersion: { $lt: updated.authVersion } }, { authVersion: { $exists: false } },
+    ] });
+  } catch (error) {
+    log("error", "revoked_session_cleanup_failed", { requestId: req.requestId, ...safeError(error) });
+  }
+  res.json({ success: true, message: "Password changed. Sign in again with your new password." });
 });
