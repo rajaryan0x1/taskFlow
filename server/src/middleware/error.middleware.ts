@@ -1,3 +1,4 @@
+import { log, safeError } from "../utils/logger.js";
 import type { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 
@@ -34,7 +35,7 @@ export const notFoundHandler = (req: Request, _res: Response, next: NextFunction
 
 export const errorHandler = (
     err: unknown,
-    _req: Request,
+    req: Request,
     res: Response,
     _next: NextFunction
 ): void => {
@@ -81,6 +82,6 @@ export const errorHandler = (
     }
 
     // Unknown error handling here
-    console.error("[unhandled error]", err);
+    log("error", "request_failed", { requestId: req.requestId, ...safeError(err) });
     send(res, 500, "Internal server error");
 };

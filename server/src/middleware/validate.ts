@@ -1,20 +1,8 @@
-import type { Request, Response, NextFunction } from "express";
-import { z } from "zod";
-import { ApiError } from "../utils/ApiError.js";
+import type { RequestHandler } from "express";
+import type { z } from "zod";
+import { parseInput } from "../utils/input.js";
 
-export const validate = (
-  schema: z.ZodTypeAny,
-  target: "body" | "query" | "params" = "body"
-) => {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    const parseResult = schema.safeParse(req[target]);
-    if (!parseResult.success) {
-      next(
-        ApiError.badRequest("Validation failed", parseResult.error.flatten().fieldErrors as any)
-      );
-    } else {
-      req[target] = parseResult.data;
-      next();
-    }
-  };
+export const validate = (schema: z.ZodType): RequestHandler => (req, _res, next) => {
+  try { req.body = parseInput(schema, req.body); next(); }
+  catch (error) { next(error); }
 };

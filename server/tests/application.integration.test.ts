@@ -70,6 +70,16 @@ afterAll(async () => {
 });
 
 describe("HTTP and real-time project boundaries", () => {
+  it("exposes health and generated request IDs without framework headers", async () => {
+    const live = await request(server).get("/health/live").set("X-Request-ID", "untrusted").expect(200);
+    expect(live.body.status).toBe("ok");
+    expect(live.headers["x-request-id"]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(live.headers).not.toHaveProperty("x-powered-by");
+    const ready = await request(server).get("/health/ready").expect(200);
+    expect(ready.body.db).toBe("connected");
+    const me = await api("owner", "get", "/auth/me").expect(200);
+    expect(me.headers["cache-control"]).toBe("no-store");
+  });
   it("restores the public identity and rejects a missing origin on mutation", async () => {
     const me = await api("owner", "get", "/auth/me").expect(200);
     expect(me.body.user.id).toBe(users.owner!.id);

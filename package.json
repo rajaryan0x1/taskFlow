@@ -10,14 +10,21 @@
   "scripts": {
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
-    "dev": "npm run dev:server & npm run dev:client",
+    "dev": "node scripts/dev.mjs",
     "build:server": "npm run build --workspace=server",
     "build:client": "npm run build --workspace=client",
     "build": "npm run build:server && npm run build:client",
     "test": "npm run test --workspaces --if-present",
-    "test:e2e": "npm run build:server && playwright test"
+    "test:e2e": "npm run build:server && playwright test",
+    "start": "npm run start --workspace=server",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run lint && npm run build && npm test"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0"
+  },
+  "engines": {
+    "node": ">=24 <27"
   }
 }

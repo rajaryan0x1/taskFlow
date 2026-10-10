@@ -1,13 +1,13 @@
 import { parseInput, cursorSchema, cursorFilter, pageResult, booleanQuery, dateInput, objectId, escapeRegex } from "../utils/input.js";
 import type { Request, Response } from "express";
 import zod from "zod";
-import { Task, TaskStatus, TaskPriority } from "../models/Task.js";
+import { Task, TaskStatus, TaskPriority, type ITask } from "../models/Task.js";
 import { Project } from "../models/Project.js";
 import User from "../models/User.js";
 import { ProjectRole } from "../types/roles.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { Types } from "mongoose";
+import { Types, type QueryFilter } from "mongoose";
 import {
     broadcastActivityCreated,
     broadcastTaskCreate,
@@ -62,7 +62,7 @@ const logActivity = async (
     actorId: string,
     type: ActivityType,
     meta: Record<string, unknown> = {},
-    io?: any
+    io?: import("socket.io").Server
 ): Promise<IActivity> => {
     const activity = await Activity.create({ project: projectId, task: taskId, actor: actorId, type, meta });
     if (io) broadcastActivityCreated(io, projectId.toString(), activity);
@@ -72,7 +72,7 @@ const logActivity = async (
 const queryFilterSchema = cursorSchema.extend({
     archived: booleanQuery,
     q: zod.string().trim().max(150).optional(),
-    priorities: zod.string().regex(/^(low|medium|high)(,(low|medium|high))*$/).optional(),
+    priorities: zod.string().transform(value => value.split(",")).pipe(zod.array(zod.enum(TaskPriority)).min(1).max(3)).optional(),
     status: zod
         .enum([TaskStatus.TODO, TaskStatus.IN_PROGRESS, TaskStatus.DONE])
         .optional(),
@@ -171,7 +171,7 @@ export const getTasksByProject = asyncHandler(
         // Parse query filters
         const filters = parseInput(queryFilterSchema, req.query);
 
-        const query: any = {
+        const query: QueryFilter<ITask> = {
             project: projectId,
             isArchived: filters.archived === "true",
             ...cursorFilter(filters.cursor),
@@ -181,7 +181,7 @@ export const getTasksByProject = asyncHandler(
         if (filters.priority) query.priority = filters.priority;
         if (filters.assignee) query.assignee = filters.assignee === "unassigned" ? null : filters.assignee;
         if (filters.q) query.title = new RegExp(escapeRegex(filters.q), "i");
-        if (filters.priorities) query.priority = { $in: filters.priorities.split(",") };
+        if (filters.priorities) query.priority = { $in: filters.priorities };
 
         const tasks = await Task.find(query)
             .populate("assignee", "firstName lastName email username")
@@ -206,7 +206,7 @@ export const getTaskById = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = req.task;
+        const task = req.task!;
         await task.populate("project", "name");
         await task.populate("assignee", "firstName lastName email username");
         await task.populate("createdBy", "firstName lastName email username");
@@ -244,7 +244,7 @@ export const updateTask = asyncHandler(
             throw ApiError.badRequest("At least one field is required to update");
         }
 
-        const task = req.task;
+        const task = req.task!;
 
         const userRole = req.projectMembership!.role;
         const previousStatus = task.status;
@@ -304,7 +304,7 @@ export const updateTask = asyncHandler(
         
         if (updates.priority !== undefined) task.priority = updates.priority;
         if (updates.assignee !== undefined) {
-            task.assignee = updates.assignee === "" ? null : (updates.assignee as any);
+            task.assignee = updates.assignee ? new Types.ObjectId(updates.assignee) : null;
         }
         if (updates.dueDate !== undefined) {
             task.dueDate = (updates.dueDate === "" || updates.dueDate === null) ? null : new Date(updates.dueDate);
@@ -390,7 +390,7 @@ export const deleteTask = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = req.task;
+        const task = req.task!;
 
         if (hardDelete) {
                         await Task.findByIdAndDelete(taskId);
@@ -446,11 +446,11 @@ export const assignTask = asyncHandler(
 
         const { assignee } = parseResult.data;
 
-        const task = req.task;
+        const task = req.task!;
 
         // Empty string means unassign
         if (assignee === "" || assignee === null) {
-            task.assignee = undefined as any;
+            task.assignee = null;
         } else {
             if (!Types.ObjectId.isValid(assignee)) {
                 throw ApiError.badRequest("Invalid assignee ID");
@@ -462,7 +462,7 @@ export const assignTask = asyncHandler(
                 throw ApiError.badRequest("Assignee must be a member of the project");
             }
 
-            task.assignee = assignee as any;
+            task.assignee = new Types.ObjectId(assignee);
         }
 
         await task.save();
@@ -500,8 +500,6 @@ export const getTaskComments = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = req.task;
-
         const { cursor, limit } = parseInput(cursorSchema, req.query);
         const comments = await Comment.find({ task: taskId, ...cursorFilter(cursor) })
             .populate("author", "firstName lastName username")
@@ -523,7 +521,7 @@ export const createTaskComment = asyncHandler(
             throw ApiError.badRequest(parseResult.error.issues.map((issue) => issue.message).join(", "));
         }
 
-        const task = req.task;
+        const task = req.task!;
 
         const comment = await Comment.create({
             task: taskId,
@@ -569,7 +567,7 @@ export const deleteTaskComment = asyncHandler(
             throw ApiError.badRequest("Invalid task or comment ID");
         }
 
-        const task = req.task;
+        const task = req.task!;
 
         const comment = await Comment.findOne({ _id: commentId, task: taskId });
         if (!comment) throw ApiError.notFound("Comment not found");
@@ -596,8 +594,6 @@ export const getTaskActivity = asyncHandler(
             throw ApiError.badRequest("Invalid task ID");
         }
 
-        const task = req.task;
-
         const { cursor, limit } = parseInput(cursorSchema, req.query);
         const activity = await Activity.find({ task: taskId, ...cursorFilter(cursor) })
             .populate("actor", "firstName lastName username")
@@ -608,7 +604,7 @@ export const getTaskActivity = asyncHandler(
 );
 
 export const restoreTask = asyncHandler(async (req: Request, res: Response) => {
-    const task = req.task;
+    const task = req.task!;
     if (!task.isArchived) throw ApiError.badRequest("Task is not archived");
     task.isArchived = false;
     await task.save();

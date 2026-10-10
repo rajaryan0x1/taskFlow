@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { Types } from "mongoose";
-import { Task } from "../models/Task.js";
+import { Types, type HydratedDocument } from "mongoose";
+import { Task, type ITask } from "../models/Task.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
 
@@ -8,7 +8,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 declare global {
     namespace Express {
         interface Request {
-            task?: any;
+            task?: HydratedDocument<ITask>;
         }
     }
 }
@@ -43,6 +43,6 @@ export const requireActiveTask = (req: Request, _res: Response, next: NextFuncti
 export const requireTaskVersion = (req: Request, _res: Response, next: NextFunction) => {
     const match = req.get("If-Match");
     if (!match || !/^"\d+"$/.test(match)) return next(new ApiError("Reload the task and provide its version in If-Match", 428));
-    if (Number(match.slice(1, -1)) !== req.task.__v) return next(ApiError.conflict("This task changed since you opened it. Close and reopen it before saving."));
+    if (Number(match.slice(1, -1)) !== req.task!.__v) return next(ApiError.conflict("This task changed since you opened it. Close and reopen it before saving."));
     next();
 };

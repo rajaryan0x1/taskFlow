@@ -8,8 +8,7 @@ const isProduction = process.env.NODE_ENV === "production";
 /**
  * A required string setting. Outside production a development fallback is
  * used when the variable is missing; in production the variable must be set
- * explicitly — silently falling back to a well-known value (e.g. a JWT secret)
- * would let anyone forge tokens.
+ * explicitly so a deployment cannot silently connect to a development database.
  */
 const secret = (name: string, devFallback: string, minProdLength = 1) => {
   const base = z
@@ -21,10 +20,13 @@ const secret = (name: string, devFallback: string, minProdLength = 1) => {
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(5000),
-  MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev"),
+  MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev").refine(value => /^mongodb(\+srv)?:\/\//.test(value), "Use a MongoDB connection URI"),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(336).default(168),
   GOOGLE_CLIENT_ID: z.preprocess(value => !isProduction && typeof value === "string" && !value.endsWith(".apps.googleusercontent.com") ? "" : value, z.string().regex(/^$|^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/, "Use a Google OAuth web client ID or leave blank").default("")),
-  CORS_ORIGINS: z.string().default("http://localhost:5173"),
+  CORS_ORIGINS: secret("CORS_ORIGINS", "http://localhost:5173").refine(value => value.split(",").every(item => {
+    try { const origin = new URL(item.trim()); return origin.origin === item.trim() && (isProduction ? origin.protocol === "https:" : ["http:", "https:"].includes(origin.protocol)); }
+    catch { return false; }
+  }), "Use comma-separated exact origins; production requires HTTPS"),
   // Number of reverse proxies in front of the app (0 = none). Needed so that
   // rate limiting keys on the real client IP instead of the proxy's.
   TRUST_PROXY: z.coerce.number().int().min(0).default(0),

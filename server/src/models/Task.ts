@@ -18,10 +18,10 @@ export interface ITask extends Document {
   status: TaskStatus;
   priority: TaskPriority;
   project: Types.ObjectId;
-  assignee?: Types.ObjectId;
+  assignee?: Types.ObjectId | null | undefined;
   createdBy: Types.ObjectId;
-  completedAt?: Date;
-  dueDate?: Date;
+  completedAt?: Date | undefined;
+  dueDate?: Date | null | undefined;
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;

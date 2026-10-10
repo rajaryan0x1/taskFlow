@@ -2,7 +2,8 @@ import { parseInput, cursorSchema, cursorFilter, pageResult, booleanQuery, objec
 import { events } from "@taskflow/contracts";
 import type { Request, Response } from "express";
 import zod from "zod";
-import { Project } from "../models/Project.js";
+import { Types, type QueryFilter } from "mongoose";
+import { Project, type IProject } from "../models/Project.js";
 import User from "../models/User.js";
 import { ApiError } from "../utils/ApiError.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -73,7 +74,7 @@ export const getMyProjects = asyncHandler(async (req: Request, res: Response): P
 
     const { cursor, limit, archived } = parseInput(cursorSchema.extend({ archived: booleanQuery }), req.query);
     const includeArchived = archived === "true";
-    const query: any = {
+    const query: QueryFilter<IProject> = {
         "members.user": req.user!.id,
         ...cursorFilter(cursor),
     };
@@ -220,7 +221,7 @@ export const inviteMember = asyncHandler(
 
     // Add member
     project.members.push({
-      user: userId as any,
+      user: new Types.ObjectId(userId),
       role,
       joinedAt: new Date(),
     });
@@ -277,7 +278,6 @@ export const removeMember = asyncHandler(
       throw ApiError.badRequest("Cannot remove the owner. Transfer ownership first.");
     }
 
-    const { canManageRole } = await import("../types/roles.js");
     if (!canManageRole(actorRole, targetMember!.role)) {
       throw ApiError.forbidden("You cannot remove a member with an equal or higher role");
     }
@@ -331,7 +331,7 @@ export const transferOwnership = asyncHandler(
 
     currentOwnerMember.role = ProjectRole.ADMIN;
     newOwnerMember.role = ProjectRole.OWNER;
-    project.owner = newOwnerId as any;
+    project.owner = new Types.ObjectId(newOwnerId);
 
     await project.save();
 
@@ -398,7 +398,6 @@ export const changeMemberRole = asyncHandler(
       throw ApiError.badRequest("Cannot change the role of the owner");
     }
 
-    const { canManageRole } = await import("../types/roles.js");
     if (!canManageRole(actorRole, member.role)) {
       throw ApiError.forbidden("You cannot modify the role of a member with an equal or higher role");
     }

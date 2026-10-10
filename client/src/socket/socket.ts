@@ -1,3 +1,4 @@
+import { socketUrl } from "../config";
 import { events } from "@taskflow/contracts";
 import { io, Socket } from "socket.io-client";
 import { useAuthStore } from "../stores/authStore";
@@ -21,7 +22,7 @@ export const initSocket = (): Socket => {
     return socket;
   }
 
-  socket = io(import.meta.env.VITE_SOCKET_URL ?? "http://localhost:5000", {
+  socket = io(socketUrl, {
     withCredentials: true,
     autoConnect: true,
   });

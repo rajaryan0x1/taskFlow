@@ -36,3 +36,15 @@ The React client will run on `http://localhost:5173` and the Express API on `htt
 npm run build
 ```
 This builds both the server and client into their respective `dist/` directories.
+
+
+## Development and verification
+
+Use Node 24 (`.nvmrc`) and `npm ci`. Copy `server/.env.example` and `client/.env.example` to their `.env` files, or use the local defaults. Start an isolated local database with `docker compose up -d`, then `npm run dev`. Google sign-in is optional; leave its client IDs blank when unused.
+
+- `npm run check`: server/client lint, production build, and unit tests.
+- `npm run test:integration --workspace=server`: isolated MongoDB HTTP and Socket.IO tests.
+- `npx playwright install chromium`, then `npm run test:e2e`: browser regression workflows.
+- `npm run start`: compiled API server.
+
+See [authentication and migration](docs/authentication.md) and [deployment and recovery](docs/operations.md). This is still a single-instance application; the operations guide documents deployment limitations and remaining production requirements.

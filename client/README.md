@@ -1,17 +1,7 @@
-# TaskFlow Client
+# TaskFlow client
 
-This is the frontend client for TaskFlow. It is built with React, TypeScript, and Vite.
+React, TypeScript, Vite, Tailwind 4, TanStack Query, and Socket.IO. Run workspace commands from the repository root; see [the project README](../README.md).
 
-## Available Scripts
+Authentication uses HttpOnly cookies, not persisted browser tokens. Private cache state is cleared at account boundaries. Production API/socket URLs must use HTTPS or the documented same-origin defaults. Configure Google sign-in only when both server and browser OAuth client IDs are valid.
 
-- `npm run dev`: Runs the app in development mode
-- `npm run build`: Builds the app for production
-- `npm run preview`: Locally preview the production build
-
-## Stack
-- React
-- React Router
-- TanStack React Query
-- Zustand
-- Socket.IO Client
-- Tailwind CSS
+`npm run lint --workspace=client`, `npm run test --workspace=client`, and `npm run build:client` validate this workspace. Browser workflows run from the root with `npm run test:e2e`.

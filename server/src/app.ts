@@ -4,13 +4,15 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoose from 'mongoose';
 import { env } from './config/env.js';
-import morgan from 'morgan';
+import { requestContext } from './middleware/request.middleware.js';
 import { requireTrustedOrigin } from './middleware/origin.middleware.js';
 
 import mainRouter from './routes/index.js';
 import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
 
 const app = express();
+app.disable("x-powered-by");
+app.use(requestContext);
 
 // Behind a reverse proxy, req.ip would otherwise be the proxy's address and
 // every client would share one rate-limit bucket.
@@ -29,15 +31,14 @@ const apiLimiter = rateLimit({
 app.use(cors({
     origin: env.CORS_ORIGINS,
     credentials: true,
+    exposedHeaders: ["X-Request-ID"],
 }));
 app.use(helmet());
 app.use(express.json({ limit: '100kb' }));
 
-if (env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-}
+app.get('/health/live', (_req, res) => res.json({ status: 'ok' }));
 
-app.get('/health', (_req, res) => {
+app.get(['/health', '/health/ready'], (_req, res) => {
     const dbConnected = mongoose.connection.readyState === 1;
     res.status(dbConnected ? 200 : 503).json({
         status: dbConnected ? 'ok' : 'degraded',

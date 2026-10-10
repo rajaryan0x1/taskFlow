@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../config";
 import axios from "axios";
 import { useAuthStore, notifyAuthChange } from "../stores/authStore";
 
@@ -5,7 +6,7 @@ declare module "axios" {
   interface InternalAxiosRequestConfig { authGeneration?: number }
 }
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1",
+  baseURL: apiBaseUrl,
   withCredentials: true,
   timeout: 15000,
   headers: { "Content-Type": "application/json", "X-TaskFlow-Client": "web" },
