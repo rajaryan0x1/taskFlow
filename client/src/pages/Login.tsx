@@ -1,12 +1,11 @@
 import { AuthLayout } from "../components/layout/AuthLayout";
-import { googleClientId } from "../config";
+import { GoogleSignIn } from "../components/GoogleSignIn";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { getErrorMessage } from "../utils/apiError";
 import { useAuthStore, notifyAuthChange } from "../stores/authStore";
-import { GoogleLogin } from "@react-oauth/google";
 
 interface LoginResponse {
     user: {
@@ -44,25 +43,16 @@ const LoginPage = () => {
     });
 
     
-    const googleLoginMutation = useMutation({
-        mutationFn: async (credential: string) => {
-            const response = await api.post<{ data: LoginResponse }>("/auth/google", { credential });
-            return response.data.data;
-        },
-        onSuccess: (data) => {
-            setAuth(data.user);
-            notifyAuthChange();
-            navigate("/");
-        },
-    });
+
 
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+    const needsProfileCompletion = useAuthStore((state) => state.user?.needsProfileCompletion);
 
     useEffect(() => {
         if (isAuthenticated) {
-            navigate("/", { replace: true });
+            navigate(needsProfileCompletion ? "/account" : "/", { replace: true });
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, needsProfileCompletion, navigate]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,35 +120,7 @@ const LoginPage = () => {
                         {loginMutation.isPending ? "Signing in..." : "Sign in"}
                     </button>
 
-                    {googleClientId && <>
-                    <div className="relative mt-4">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-200" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-slate-500">Or continue with</span>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-4 flex justify-center">
-                        <GoogleLogin
-                            onSuccess={(credentialResponse) => {
-                                if (credentialResponse.credential) {
-                                    googleLoginMutation.mutate(credentialResponse.credential);
-                                }
-                            }}
-                            onError={() => {
-                                console.error('Google Login Failed');
-                            }}
-                            theme="filled_black"
-                        />
-                    </div>
-                    </>}
-                    {googleLoginMutation.isError && (
-                        <div className="mt-2 text-sm text-red-500 text-center">
-                            {getErrorMessage(googleLoginMutation.error, "Google Login failed")}
-                        </div>
-                    )}
+                    <GoogleSignIn mode="login" />
 
 
                     <div className="text-center text-sm text-slate-600">

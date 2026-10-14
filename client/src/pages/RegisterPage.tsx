@@ -1,11 +1,10 @@
 import { AuthLayout } from "../components/layout/AuthLayout";
-import { googleClientId } from "../config";
+import { GoogleSignIn } from "../components/GoogleSignIn";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { useAuthStore, notifyAuthChange } from "../stores/authStore";
-import { GoogleLogin } from "@react-oauth/google";
 import { getErrorMessage, getFieldErrors } from "../utils/apiError";
 
 interface RegisterResponse {
@@ -29,17 +28,7 @@ const RegisterPage = () => {
     const setAuth = useAuthStore((state) => state.setAuth);
 
     
-    const googleLoginMutation = useMutation({
-        mutationFn: async (credential: string) => {
-            const response = await api.post<{ data: RegisterResponse }>("/auth/google", { credential });
-            return response.data.data;
-        },
-        onSuccess: (data) => {
-            setAuth(data.user);
-            notifyAuthChange();
-            navigate("/");
-        },
-    });
+
 
     const registerMutation = useMutation({
         mutationFn: async (data: {
@@ -191,35 +180,7 @@ const RegisterPage = () => {
                         {registerMutation.isPending ? "Creating account..." : "Create account"}
                     </button>
 
-                    {googleClientId && <>
-                    <div className="relative mt-4">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-200" />
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white text-slate-500">Or continue with</span>
-                        </div>
-                    </div>
-                    
-                    <div className="mt-4 flex justify-center">
-                        <GoogleLogin
-                            onSuccess={(credentialResponse) => {
-                                if (credentialResponse.credential) {
-                                    googleLoginMutation.mutate(credentialResponse.credential);
-                                }
-                            }}
-                            onError={() => {
-                                console.error('Google Login Failed');
-                            }}
-                            theme="filled_black"
-                        />
-                    </div>
-                    </>}
-                    {googleLoginMutation.isError && (
-                        <div className="mt-2 text-sm text-red-500 text-center">
-                            {getErrorMessage(googleLoginMutation.error, "Google Login failed")}
-                        </div>
-                    )}
+                    <GoogleSignIn mode="signup" />
 
 
                     <div className="text-center text-sm text-slate-600">
