@@ -26,9 +26,9 @@ const authLimiter = rateLimit({
 });
 
 const registerSchema = zod.object({
-  firstName: zod.string().trim().min(1).max(30),
-  lastName: zod.string().trim().min(1).max(30),
-  username: zod.string().trim().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/, "Use letters, numbers, and underscores"),
+  firstName: zod.string().trim().min(1, "Enter your first name").max(30, "Use at most 30 characters"),
+  lastName: zod.string().trim().min(1, "Enter your last name").max(30, "Use at most 30 characters"),
+  username: zod.string().trim().min(3, "Use at least 3 characters").max(20, "Use at most 20 characters").regex(/^[a-zA-Z0-9_]+$/, "Use letters, numbers, and underscores"),
   email: zod.string().trim().email().toLowerCase(),
   password: newPasswordSchema,
 });

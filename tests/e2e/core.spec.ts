@@ -119,3 +119,21 @@ test('change password with confirmation and sign in again', async ({ page }) => 
   await page.getByRole('button', { name: 'Sign in', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
 });
+
+test('signup explains invalid fields and succeeds after correction', async ({ page }) => {
+  await page.goto('/register');
+  await page.getByLabel('First Name').fill('   ');
+  await page.getByLabel('Last Name').fill('Tester');
+  await page.getByLabel('Username').fill('invalid.name');
+  await page.getByLabel('Email', { exact: true }).fill('validation@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('correct-horse-battery');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  expect(await page.getByLabel('Username').evaluate((input: HTMLInputElement) => input.validity.patternMismatch)).toBe(true);
+  await page.getByLabel('Username').fill('validation_tester');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('First Name: Enter your first name');
+  await expect(page.getByLabel('First Name')).toHaveAttribute('aria-invalid', 'true');
+  await page.getByLabel('First Name').fill('Validation');
+  await page.getByRole('button', { name: 'Create account', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'My Projects' })).toBeVisible();
+});

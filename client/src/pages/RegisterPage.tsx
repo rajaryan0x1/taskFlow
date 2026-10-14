@@ -6,7 +6,7 @@ import { useMutation } from "@tanstack/react-query";
 import api from "../api/axios";
 import { useAuthStore, notifyAuthChange } from "../stores/authStore";
 import { GoogleLogin } from "@react-oauth/google";
-import { getErrorMessage } from "../utils/apiError";
+import { getErrorMessage, getFieldErrors } from "../utils/apiError";
 
 interface RegisterResponse {
     user: {
@@ -59,6 +59,8 @@ const RegisterPage = () => {
         },
     });
 
+    const fieldErrors = getFieldErrors(registerMutation.error);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         registerMutation.mutate({ firstName, lastName, username, email, password });
@@ -75,7 +77,7 @@ const RegisterPage = () => {
 
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {registerMutation.isError && (
-                        <div className="bg-rose-50 text-red-600 p-3 rounded text-sm">
+                        <div role="alert" className="bg-rose-50 text-red-600 p-3 rounded text-sm">
                             {getErrorMessage(registerMutation.error, "Registration failed. Please try again.")}
                         </div>
                     )}
@@ -88,6 +90,9 @@ const RegisterPage = () => {
                                 </label>
                                 <input
                                     id="firstName"
+                                    aria-invalid={!!fieldErrors.firstName}
+                                    maxLength={30}
+                                    autoComplete="given-name"
                                     type="text"
                                     required
                                     value={firstName}
@@ -103,6 +108,9 @@ const RegisterPage = () => {
                                 </label>
                                 <input
                                     id="lastName"
+                                    aria-invalid={!!fieldErrors.lastName}
+                                    maxLength={30}
+                                    autoComplete="family-name"
                                     type="text"
                                     required
                                     value={lastName}
@@ -119,6 +127,13 @@ const RegisterPage = () => {
                             </label>
                             <input
                                 id="username"
+                                    aria-invalid={!!fieldErrors.username}
+                                minLength={3}
+                                maxLength={20}
+                                pattern="[a-zA-Z0-9_]+"
+                                title="Use 3–20 letters, numbers, or underscores"
+                                autoComplete="username"
+                                aria-describedby="usernameHelp"
                                 type="text"
                                 required
                                 value={username}
@@ -126,6 +141,7 @@ const RegisterPage = () => {
                                 className="mt-1 block w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="johndoe"
                             />
+                            <p id="usernameHelp" className="mt-1 text-xs text-slate-500">3–20 letters, numbers, or underscores. No spaces or dots.</p>
                         </div>
 
                         <div>
@@ -134,6 +150,8 @@ const RegisterPage = () => {
                             </label>
                             <input
                                 id="email"
+                                    aria-invalid={!!fieldErrors.email}
+                                autoComplete="email"
                                 type="email"
                                 required
                                 value={email}
@@ -149,16 +167,19 @@ const RegisterPage = () => {
                             </label>
                             <input
                                 id="password"
+                                    aria-invalid={!!fieldErrors.password}
+                                autoComplete="new-password"
+                                aria-describedby="passwordHelp"
                                 type="password"
                                 required
                                 minLength={12}
                                 maxLength={72}
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); e.target.setCustomValidity(new TextEncoder().encode(e.target.value).length > 72 ? "Password is too long. Use at most 72 UTF-8 bytes; accented letters and emoji can use more than one byte." : ""); }}
                                 className="mt-1 block w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="••••••••"
                             />
-                            <p className="mt-1 text-xs text-slate-500">Use 12–72 characters (maximum 72 UTF-8 bytes)</p>
+                            <p id="passwordHelp" className="mt-1 text-xs text-slate-500">Use 12–72 characters (maximum 72 UTF-8 bytes)</p>
                         </div>
                     </div>
 
