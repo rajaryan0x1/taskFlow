@@ -173,6 +173,31 @@ describe("HTTP and real-time project boundaries", () => {
     const current = await api("owner", "get", path).expect(200);
     expect(current.body.data.title).toBe("First update");
   });
+  it("scopes the personal queue to current membership and excludes archived or completed work", async () => {
+    const id = await createProject();
+    await invite(id, "member");
+    const tasks = await Task.insertMany([
+      { title: "My open work", project: id, createdBy: users.owner!.id, assignee: users.member!.id, dueDate: new Date("2020-01-01") },
+      { title: "Another open task", project: id, createdBy: users.owner!.id, assignee: users.member!.id },
+      { title: "Completed", project: id, createdBy: users.owner!.id, assignee: users.member!.id, status: "done" },
+      { title: "Archived", project: id, createdBy: users.owner!.id, assignee: users.member!.id, isArchived: true },
+      { title: "Someone else's task", project: id, createdBy: users.owner!.id, assignee: users.owner!.id },
+    ]);
+    const first = await api("member", "get", "/tasks/mine?limit=1").expect(200);
+    expect(first.body.summary).toEqual({ total: 2, overdue: 1 });
+    expect(first.body.data).toHaveLength(1);
+    const second = await api("member", "get", `/tasks/mine?limit=1&cursor=${first.body.pagination.nextCursor}`).expect(200);
+    expect(second.body.data[0]._id).not.toBe(first.body.data[0]._id);
+    expect(second.body.data[0].projectName).toBe("Integration project");
+    await Project.updateOne({ _id: id }, { isArchived: true });
+    expect((await api("member", "get", "/tasks/mine").expect(200)).body.data).toEqual([]);
+    await Project.updateOne({ _id: id }, { isArchived: false, $pull: { members: { user: users.member!.id } } });
+    expect(await Task.exists({ _id: tasks[0]!._id, assignee: users.member!.id })).toBeTruthy();
+    const removed = await api("member", "get", "/tasks/mine").expect(200);
+    expect(removed.body.data).toEqual([]);
+    expect(removed.body.summary.total).toBe(0);
+    await api("member", "get", "/tasks/mine?limit=bad").expect(400);
+  });
   it("keeps completion history after reopening and archiving", async () => {
     const id = await createProject();
     const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Historical task", status: "done" }).expect(201);

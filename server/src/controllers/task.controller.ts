@@ -19,6 +19,30 @@ import { Comment } from "../models/Comment.js";
 import { Activity, type ActivityType, type IActivity } from "../models/Activity.js";
 import { broadcastCommentCreated, broadcastCommentDeleted } from "../sockets/task.socket.js";
 
+// A bounded personal work queue. Membership is checked inside the aggregation
+// so a stale assignee reference never exposes a project the user has left.
+export const getMyTasks = asyncHandler(async (req: Request, res: Response) => {
+    const userId = new Types.ObjectId(req.user!.id);
+    const { cursor, limit } = parseInput(cursorSchema, req.query);
+    const [result] = await Task.aggregate([
+        { $match: { assignee: userId, isArchived: false, status: { $ne: "done" } } },
+        { $lookup: { from: "projects", localField: "project", foreignField: "_id", pipeline: [
+            { $match: { "members.user": userId, isArchived: false } },
+            { $project: { name: 1 } },
+        ], as: "projectInfo" } },
+        { $unwind: "$projectInfo" },
+        { $facet: {
+            items: [
+                { $match: cursor ? { _id: { $lt: new Types.ObjectId(cursor) } } : {} },
+                { $sort: { _id: -1 } }, { $limit: limit + 1 },
+                { $project: { title: 1, status: 1, priority: 1, dueDate: 1, project: 1, projectName: "$projectInfo.name" } },
+            ],
+            counts: [{ $group: { _id: null, total: { $sum: 1 }, overdue: { $sum: { $cond: [{ $and: [{ $ne: [{ $ifNull: ["$dueDate", null] }, null] }, { $lt: ["$dueDate", new Date()] }] }, 1, 0] } } } }],
+        } },
+    ]);
+    res.json({ success: true, ...pageResult(result?.items ?? [], limit), summary: result?.counts[0] ? { total: result.counts[0].total, overdue: result.counts[0].overdue } : { total: 0, overdue: 0 } });
+});
+
 // ─── Validation Schemas ───────────────────────────────────────────────────────
 
 const createTaskSchema = zod.object({

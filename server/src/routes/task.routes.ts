@@ -14,9 +14,11 @@ import {
     createTaskComment,
     deleteTaskComment,
     getTaskActivity,
+    getMyTasks,
 } from "../controllers/task.controller.js";
 
 const router = Router();
+router.get("/mine", authMiddleware, getMyTasks);
 
 // Deprecated alias
 router.post("/", authMiddleware, (req, _res, next) => {
