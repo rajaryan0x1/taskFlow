@@ -11,14 +11,13 @@ interface KanbanBoardProps {
 }
 
 export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick, onTaskDrop, canMoveTask }: KanbanBoardProps) => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <KanbanColumn
             title="To Do"
             status="todo"
             tasks={todoTasks}
             onTaskDrop={onTaskDrop}
             canMoveTask={canMoveTask}
-            colorClass="bg-white/5"
             onTaskClick={onTaskClick}
         />
         <KanbanColumn
@@ -27,7 +26,6 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             tasks={inProgressTasks}
             onTaskDrop={onTaskDrop}
             canMoveTask={canMoveTask}
-            colorClass="bg-blue-900/20"
             onTaskClick={onTaskClick}
         />
         <KanbanColumn
@@ -36,7 +34,6 @@ export const KanbanBoard = ({ todoTasks, inProgressTasks, doneTasks, onTaskClick
             tasks={doneTasks}
             onTaskDrop={onTaskDrop}
             canMoveTask={canMoveTask}
-            colorClass="bg-emerald-900/20"
             onTaskClick={onTaskClick}
         />
     </div>

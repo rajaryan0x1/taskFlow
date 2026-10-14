@@ -1,3 +1,4 @@
+import { AuthLayout } from "../components/layout/AuthLayout";
 import { googleClientId } from "../config";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
@@ -73,25 +74,25 @@ const LoginPage = () => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-transparent">
-            <div className="max-w-md w-full space-y-8 p-8 bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg shadow-md">
+        <AuthLayout>
+            <div className="auth-form">
                 <div>
-                    <h2 className="text-center text-3xl font-bold text-white">
+                    <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
                         Sign in to TaskFlow
-                    </h2>
+                    </h2><p className="mt-3 text-xs text-slate-500">A calmer way to move work forward.</p>
                 </div>
 
-                {notice && <p role="status" className="text-emerald-300">{notice}</p>}
+                {notice && <p role="status" className="text-emerald-700">{notice}</p>}
                 <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
                     {loginMutation.isError && (
-                        <div className="bg-rose-900/20 text-red-600 p-3 rounded text-sm">
+                        <div className="bg-rose-50 text-red-600 p-3 rounded text-sm">
                             {getErrorMessage(loginMutation.error, "Invalid email or password")}
                         </div>
                     )}
 
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-slate-200">
+                            <label htmlFor="email" className="block text-sm font-medium text-slate-700">
                                 Email
                             </label>
                             <input
@@ -100,13 +101,13 @@ const LoginPage = () => {
                                 required
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="mt-1 block w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
+                                className="mt-1 block w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="john@example.com"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-200">
+                            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                                 Password
                             </label>
                             <input
@@ -115,7 +116,7 @@ const LoginPage = () => {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="mt-1 block w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
+                                className="mt-1 block w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm focus:outline-hidden focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="••••••••"
                             />
                         </div>
@@ -124,7 +125,7 @@ const LoginPage = () => {
                     <button
                         type="submit"
                         disabled={loginMutation.isPending}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.4)] transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 transition-all focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loginMutation.isPending ? "Signing in..." : "Sign in"}
                     </button>
@@ -132,10 +133,10 @@ const LoginPage = () => {
                     {googleClientId && <>
                     <div className="relative mt-4">
                         <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-white/10" />
+                            <div className="w-full border-t border-slate-200" />
                         </div>
                         <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-slate-900 text-slate-400">Or continue with</span>
+                            <span className="px-2 bg-white text-slate-500">Or continue with</span>
                         </div>
                     </div>
                     
@@ -160,15 +161,15 @@ const LoginPage = () => {
                     )}
 
 
-                    <div className="text-center text-sm text-slate-300">
+                    <div className="text-center text-sm text-slate-600">
                         Don't have an account?{" "}
-                        <Link to="/register" className="font-medium text-indigo-400 hover:text-blue-500">
+                        <Link to="/register" className="font-medium text-indigo-600 hover:text-blue-500">
                             Register here
                         </Link>
                     </div>
                 </form>
             </div>
-        </div>
+        </AuthLayout>
     );
 };
 

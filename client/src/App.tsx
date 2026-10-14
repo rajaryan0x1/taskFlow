@@ -4,7 +4,8 @@ import { useAuthStore } from "./stores/authStore";
 import api from "./api/axios";
 import type { AuthUser } from "./stores/authStore";
 import LoginPage from "./pages/Login";
-import { Starfield } from "./components/Starfield";
+import { AppShell } from "./components/layout/AppShell";
+import MyTasksPage from "./pages/MyTasksPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashBoardPage";
 import AccountPage from "./pages/AccountPage";
@@ -35,23 +36,23 @@ function App() {
   }, [setAuth]);
 
   if (isVerifying) {
-    return <div className="flex h-screen items-center justify-center text-slate-200 bg-black"><Starfield />Loading...</div>;
+    return <div className="app-loading" role="status"><span className="loading-mark" />Loading your space…</div>;
   }
 
   return (
-    <div className="relative min-h-screen text-slate-200">
-      <Starfield />
+    <div className="min-h-screen">
       <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       {/* Protected routes */}
-      <Route element={<ProtectedRoute />}>
+      <Route element={<ProtectedRoute />}><Route element={<AppShell />}>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/my-tasks" element={<MyTasksPage />} />
         <Route path="/projects/:projectId" element={<ProjectPage />} />
-      </Route>
+      </Route></Route>
 
       {/* Catch-all: redirect to dashboard or login */}
       <Route

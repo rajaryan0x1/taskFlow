@@ -10,5 +10,5 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
     dialog.showModal();
     return () => { dialog.close(); previous?.focus(); };
   }, []);
-  return createPortal(<dialog ref={ref} aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} className="m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-white/20 bg-slate-950 p-0 text-white shadow-2xl">{children}</dialog>, document.body);
+  return createPortal(<dialog ref={ref} aria-label={title} onCancel={event => { event.preventDefault(); onClose(); }} className="m-auto max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 text-slate-900 shadow-sm">{children}</dialog>, document.body);
 }

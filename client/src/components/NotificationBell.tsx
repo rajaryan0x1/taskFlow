@@ -1,132 +1,40 @@
 import { events } from "@taskflow/contracts";
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useInfiniteQuery } from "@tanstack/react-query";
 import api from "../api/axios";
 import { queryClient } from "../api/queryClient";
 import { initSocket } from "../socket/socket";
-
-interface Notification {
-    _id: string;
-    type: "task_assigned" | "comment_mention" | "due_soon" | "member_invited";
-    payload: { taskTitle?: string; projectName?: string; projectId?: string; taskId?: string };
-    read: boolean;
-    createdAt: string;
+import type { AppNotification } from "../types";
+import { Icon } from "./layout/Icon";
+interface NotificationResponse { data: AppNotification[]; pagination: { unread: number; page: number; pages: number } }
+export default function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const navigate = useNavigate();
+  const query = useInfiniteQuery({ queryKey: ["notifications"], initialPageParam: 1,
+    getNextPageParam: (last: NotificationResponse) => last.pagination.page < last.pagination.pages ? last.pagination.page + 1 : undefined,
+    queryFn: async ({ pageParam, signal }) => (await api.get<NotificationResponse>("/notifications", { signal, params: { page: pageParam, limit: 20 } })).data,
+  });
+  useEffect(() => {
+    const outside = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const escape = (e: KeyboardEvent) => { if (e.key === "Escape" && open) { setOpen(false); trigger.current?.focus(); } };
+    document.addEventListener("mousedown", outside); document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", escape); };
+  }, [open]);
+  useEffect(() => {
+    const socket = initSocket();
+    const refresh = () => { void queryClient.invalidateQueries({ queryKey: ["notifications"] }); void queryClient.invalidateQueries({ queryKey: ["personal-tasks"] }); };
+    socket.on(events.notificationNew, refresh); socket.on("connect", refresh);
+    return () => { socket.off(events.notificationNew, refresh); socket.off("connect", refresh); };
+  }, []);
+  const markRead = useMutation({ mutationFn: (id: string) => api.patch(`/notifications/${id}/read`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
+  const markAll = useMutation({ mutationFn: () => api.patch("/notifications/read-all"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }) });
+  const notifications = query.data?.pages.flatMap(page => page.data) ?? [];
+  const unread = query.data?.pages[0]?.pagination.unread ?? 0;
+  const describe = (n: AppNotification) => n.type === "task_assigned" ? `Assigned: ${n.payload.taskTitle ?? "a task"}` : n.type === "member_invited" ? `Invited to ${n.payload.projectName ?? "a project"}` : n.type === "due_soon" ? `Due soon: ${n.payload.taskTitle ?? "a task"}` : `Mentioned in ${n.payload.taskTitle ?? "a comment"}`;
+  return <div className="relative" ref={ref}><button ref={trigger} type="button" aria-label="Notifications" aria-expanded={open} aria-controls="notification-panel" className="icon-button relative" onClick={() => setOpen(value => !value)}><svg aria-hidden="true" width="19" height="19" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1.6"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" strokeLinecap="round" strokeLinejoin="round" /></svg>{unread > 0 && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-indigo-500"><span className="sr-only">{unread} unread</span></span>}</button>
+  {open && <section id="notification-panel" aria-label="Notifications" className="notification-panel surface"><div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4"><div><h2 className="font-semibold">Notifications</h2><p className="mt-1 text-[11px] text-slate-500">{unread} unread · retained for 30 days</p></div><button className="text-xs font-medium text-indigo-600" disabled={markAll.isPending || !unread} onClick={() => markAll.mutate()}>Mark all read</button></div><div className="max-h-96 overflow-y-auto">{query.isPending && <p role="status" className="p-6 text-slate-500">Loading notifications…</p>}{query.isError && <div role="alert" className="p-5"><p className="error-message">Notifications couldn’t be loaded.</p><button className="btn-secondary" onClick={() => void query.refetch()}>Retry</button></div>}{!query.isPending && !query.isError && !notifications.length && <div className="empty-state"><Icon name="check" size={23} /><h3>All quiet here</h3><p>Assignments and mentions will appear here.</p></div>}{notifications.map(n => <button key={n._id} className={`flex w-full gap-3 border-b border-slate-100 p-4 text-left ${n.read ? "bg-white" : "bg-indigo-50/50"}`} onClick={() => { if (!n.read) markRead.mutate(n._id); if (n.payload.projectId) { navigate(`/projects/${n.payload.projectId}${n.payload.taskId ? `?task=${n.payload.taskId}` : ""}`); setOpen(false); } }}><span className="avatar !h-7 !w-7"><Icon name="check" size={13} /></span><span><strong className="text-xs font-medium text-slate-700">{describe(n)}</strong><small className="mt-1 block text-[10px] text-slate-400">{new Date(n.createdAt).toLocaleString()}</small></span></button>)}{query.hasNextPage && <div className="p-3 text-center"><button className="btn-secondary" disabled={query.isFetchingNextPage} onClick={() => void query.fetchNextPage()}>Load more notifications</button></div>}</div>{(markRead.isError || markAll.isError) && <p role="alert" className="error-message px-4">Couldn’t mark notifications as read. Please retry.</p>}</section>}
+  </div>;
 }
-
-interface NotificationResponse {
-    data: Notification[];
-    pagination: { unread: number };
-}
-
-const NotificationBell = () => {
-    const [open, setOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const handler = (e: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, []);
-    const { data } = useQuery({
-        queryKey: ["notifications"],
-        queryFn: async () => {
-            const response = await api.get<NotificationResponse>("/notifications?limit=20");
-            return response.data;
-        },
-    });
-
-    useEffect(() => {
-        let socket;
-        try {
-            socket = initSocket();
-        } catch {
-            return;
-        }
-
-        const refresh = () => queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        socket.on(events.notificationNew, refresh);
-        return () => {
-            socket.off(events.notificationNew, refresh);
-        };
-    }, []);
-
-    const markReadMutation = useMutation({
-        mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-    });
-
-    const markAllReadMutation = useMutation({
-        mutationFn: () => api.patch("/notifications/read-all"),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
-    });
-
-    const describe = (notification: Notification) => {
-        if (notification.type === "task_assigned") return `Assigned: ${notification.payload.taskTitle ?? "a task"}`;
-        if (notification.type === "member_invited") return `Invited to ${notification.payload.projectName ?? "a project"}`;
-        if (notification.type === "due_soon") return `Due soon: ${notification.payload.taskTitle ?? "a task"}`;
-        return "You have a new notification";
-    };
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <button
-                type="button"
-                aria-label="Notifications"
-                onClick={() => setOpen((current) => !current)}
-                className="relative rounded-md p-2 text-slate-300 hover:bg-white/5 hover:text-white"
-            >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.5-2V10a6.5 6.5 0 0 0-13 0v5L4 17h5m6 0a3 3 0 0 1-6 0m6 0H9" />
-                </svg>
-                {(data?.pagination.unread ?? 0) > 0 && (
-                    <span className="absolute -right-1 -top-1 min-w-4 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold text-white">
-                        {data?.pagination.unread}
-                    </span>
-                )}
-            </button>
-
-            {open && (
-                <div className="absolute right-0 z-20 mt-2 w-80 rounded-lg border border-white/10 bg-white/5 backdrop-blur-md border border-white/10 text-white p-3 shadow-lg">
-                    <div className="mb-2 flex items-center justify-between">
-                        <h2 className="text-sm font-semibold text-white">Notifications</h2>
-                        <button
-                            type="button"
-                            onClick={() => markAllReadMutation.mutate()}
-                            className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
-                        >
-                            Mark all read
-                        </button>
-                    </div>
-                    <div className="max-h-72 space-y-1 overflow-y-auto">
-                        {(data?.data ?? []).map((notification) => (
-                            <button
-                                type="button"
-                                key={notification._id}
-                                onClick={() => {
-                                    if (!notification.read) markReadMutation.mutate(notification._id);
-                                    if (notification.payload.projectId) {
-                                        navigate(`/projects/${notification.payload.projectId}${notification.payload.taskId ? `?task=${notification.payload.taskId}` : ""}`);
-                                        setOpen(false);
-                                    }
-                                }}
-                                className={`block w-full rounded-md p-2 text-left text-sm ${notification.read ? "text-slate-400" : "bg-blue-900/20 text-white"}`}
-                            >
-                                <span>{describe(notification)}</span>
-                                <span className="mt-1 block text-xs text-slate-500">{new Date(notification.createdAt).toLocaleString()}</span>
-                            </button>
-                        ))}
-                        {data?.data.length === 0 && <p className="p-2 text-sm text-slate-400">No notifications.</p>}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-export default NotificationBell;

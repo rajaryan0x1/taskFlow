@@ -1,0 +1,7 @@
+import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
+import { Brand, Icon } from "./Icon";
+
+export function AuthLayout({ children }: { children: ReactNode }) {
+  return <div className="auth-layout"><aside className="auth-story"><Link to="/login" aria-label="TaskFlow home"><Brand /></Link><div className="auth-story-content"><span className="eyebrow">LESS FRICTION. MORE FLOW.</span><h1>Good work starts<br />with a clear <em>plan.</em></h1><p>Bring your projects, people, and priorities together. Make room for the work that matters.</p><div className="auth-illustration" aria-hidden="true"><div className="preview-title"><span className="preview-dot" />A little progress, every day<span>↗</span></div><div className="preview-task"><span className="preview-check"><Icon name="check" /></span><div><strong>Turn the idea into a plan</strong><small>Start with the next small step</small></div><span className="mini-pill">Done</span></div><div className="preview-task"><span className="preview-progress" /><div><strong>Keep everyone in the loop</strong><small>Build momentum, together</small></div></div><div className="preview-line"><span /></div><div className="preview-footer">A clear path from to-do to done.<Icon name="arrow" /></div></div></div><div className="auth-story-footer">Thoughtfully simple. Built for getting things done.</div></aside><main className="auth-main"><div className="auth-mobile-brand"><Brand /></div>{children}<p className="auth-footer">Your next great project starts here.</p></main></div>;
+}

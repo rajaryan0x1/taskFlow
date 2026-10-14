@@ -13,7 +13,7 @@ export const useProjectSocket = (projectId: string | undefined) => {
     if (!projectId) return;
     const socket = initSocket();
     const taskChanged = () => {
-      for (const key of [queryKeys.tasks(projectId), queryKeys.task(projectId), queryKeys.analytics(projectId)]) void queryClient.invalidateQueries({ queryKey: key });
+      for (const key of [queryKeys.tasks(projectId), queryKeys.task(projectId), queryKeys.analytics(projectId), ["personal-tasks"]]) void queryClient.invalidateQueries({ queryKey: key });
     };
     const projectChanged = () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.project(projectId) });

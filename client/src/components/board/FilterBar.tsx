@@ -21,7 +21,7 @@ export const FilterBar = ({
     clearFilters,
     projectMembers
 }: FilterBarProps) => (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 text-white rounded-lg border border-white/10 p-4 mb-6 flex flex-wrap gap-4 items-center">
+    <div className="mb-5 flex flex-wrap items-center gap-3">
         <div className="flex-1 min-w-[200px]">
             <input
                 aria-label="Search tasks"
@@ -29,14 +29,14 @@ export const FilterBar = ({
                 placeholder="Search tasks..."
                 value={titleFilter}
                 onChange={(e) => setTitleFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
             />
         </div>
         <select
             aria-label="Filter by assignee"
             value={assigneeFilter}
             onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="px-3 py-2 border border-white/10 rounded-md bg-slate-900/50 text-white placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
+            className="px-3 py-2 border border-slate-200 rounded-md bg-white text-slate-900 placeholder-slate-400 focus:ring-indigo-500 focus:border-indigo-500 text-sm focus:ring-blue-500 focus:border-blue-500"
         >
             <option value="all">All Assignees</option>
             <option value="unassigned">Unassigned</option>
@@ -50,15 +50,16 @@ export const FilterBar = ({
             {(["low", "medium", "high"] as const).map((p) => (
                 <button
                     key={p}
+                    aria-pressed={priorityFilters.has(p)}
                     onClick={() => togglePriorityFilter(p)}
                     className={`px-3 py-1.5 rounded-full text-xs font-medium border capitalize transition-colors ${
                         priorityFilters.has(p)
                             ? p === "high"
-                                ? "bg-rose-900/40 border-red-200 text-rose-300"
+                                ? "bg-rose-50 border-red-200 text-rose-700"
                                 : p === "medium"
-                                ? "bg-amber-900/40 border-yellow-200 text-amber-300"
-                                : "bg-emerald-900/40 border-green-200 text-emerald-300"
-                            : "bg-transparent border-white/10 text-slate-400 hover:bg-white/5"
+                                ? "bg-amber-50 border-yellow-200 text-amber-700"
+                                : "bg-emerald-50 border-green-200 text-emerald-700"
+                            : "bg-transparent border-slate-200 text-slate-500 hover:bg-white"
                     }`}
                 >
                     {p}
@@ -69,7 +70,7 @@ export const FilterBar = ({
             <button
                 type="button"
                 onClick={clearFilters}
-                className="text-sm font-medium text-indigo-400 hover:text-indigo-300"
+                className="text-sm font-medium text-indigo-600 hover:text-indigo-600"
             >
                 Clear filters
             </button>

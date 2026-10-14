@@ -5,15 +5,14 @@ interface KanbanColumnProps {
     title: string;
     status: "todo" | "in_progress" | "done";
     tasks: Task[];
-    colorClass: string;
     canMoveTask: (task: Task) => boolean;
     onTaskClick: (task: Task) => void;
     onTaskDrop?: (taskId: string, newStatus: "todo" | "in_progress" | "done") => void;
 }
 
-export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, onTaskDrop, canMoveTask }: KanbanColumnProps) => (
+export const KanbanColumn = ({ title, status, tasks, onTaskClick, onTaskDrop, canMoveTask }: KanbanColumnProps) => (
     <div
-        className={`${colorClass} rounded-2xl p-4 min-h-[200px] backdrop-blur-md border border-white/10 shadow-2xl`}
+        className="kanban-column"
         onDragOver={(e) => {
             if (onTaskDrop) e.preventDefault();
         }}
@@ -26,11 +25,10 @@ export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, on
             }
         }}
     >
-        <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-white">
+        <div className="column-heading">
+            <span className={`status-dot ${status}`} /><h2 className="font-semibold text-slate-700">
                 {title}
-                <span className="ml-2 text-sm text-slate-400">({tasks.length})</span>
-            </h2>
+            </h2><span className="column-count">{tasks.length}</span>
         </div>
         <div className="space-y-3">
             {tasks.map((task) => (
@@ -42,7 +40,7 @@ export const KanbanColumn = ({ title, status, tasks, colorClass, onTaskClick, on
                 />
             ))}
             {tasks.length === 0 && (
-                <div className="text-center py-8 text-slate-500 text-sm">
+                <div className="rounded-lg border border-dashed border-slate-300/70 px-4 py-10 text-center text-xs text-slate-400">
                     No tasks yet
                 </div>
             )}
