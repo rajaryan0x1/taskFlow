@@ -30,6 +30,7 @@ export async function resolveGoogleUser(payload: TokenPayload) {
         firstName, lastName, email,
         username: `user_${randomBytes(7).toString("hex")}`,
         googleId: payload.sub, authProvider: "google",
+        emailVerifiedAt: new Date(),
         needsProfileCompletion: !payload.given_name?.trim() || !payload.family_name?.trim(),
       });
     } catch (error) {

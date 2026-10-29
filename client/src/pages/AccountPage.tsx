@@ -14,6 +14,7 @@ export default function AccountPage() {
   const [lastName, setLastName] = useState(user?.lastName ?? "");
   const [password, setPassword] = useState("");
   const signOutAll = useMutation({ mutationFn: () => signOut(true) });
+  const verification = useMutation({ mutationFn: async () => (await api.post<{ message: string }>("/auth/verification-email")).data });
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -42,6 +43,11 @@ export default function AccountPage() {
     <Link to="/" className="text-indigo-600">Back to projects</Link>
     <div className="page-heading mt-5"><div><h1>Account settings</h1><p>Your profile, sign-in methods, and security. All in one place.</p></div></div>
     {user?.needsProfileCompletion && <p className="mb-4">Please confirm your name to finish setting up your account.</p>}
+    <section className="surface mb-6 p-6"><h2 className="mb-2 text-lg font-semibold">Email verification</h2>
+      {user?.emailVerified ? <p className="text-sm text-emerald-700">Your email is verified.</p> : <><p className="mb-4 text-sm text-slate-600">Verify {user?.email} to send and accept project invitations. Check your inbox and spam folder.</p><button className="btn-secondary" disabled={verification.isPending} onClick={() => verification.mutate()}>{verification.isPending ? "Requesting…" : "Send verification email"}</button></>}
+      {verification.isSuccess && <p role="status" className="mt-3 text-sm text-emerald-700">{verification.data.message}</p>}
+      {verification.isError && <p role="alert" className="mt-3 text-sm text-rose-700">{getErrorMessage(verification.error)}</p>}
+    </section>
     <form onSubmit={event => { event.preventDefault(); profile.mutate(); }} className="rounded-xl border border-slate-200 bg-white p-6">
       <label htmlFor="firstName">First name</label>
       <input id="firstName" required maxLength={30} value={firstName} onChange={e => setFirstName(e.target.value)} className={inputClass} />

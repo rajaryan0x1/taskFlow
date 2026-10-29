@@ -20,7 +20,7 @@ if (env.TRUST_PROXY > 0) {
     app.set('trust proxy', env.TRUST_PROXY);
 }
 
-const apiLimiter = rateLimit({
+export const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 200,
   standardHeaders: true,

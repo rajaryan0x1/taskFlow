@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import asyncHandler from "../utils/asyncHandler.js";
 import { verifiedGoogleIdentity, resolveGoogleUser } from "../services/google.js";
 import { ApiError } from "../utils/ApiError.js";
+import { queueAccountEmail } from "../services/accountEmail.js";
 
 
 
@@ -33,6 +34,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     message: "Account created successfully",
     user: publicUser(newUser),
   });
+  queueAccountEmail(newUser.email, "verification");
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -92,6 +94,11 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
   const user = await resolveGoogleUser(payload);
 
   if (user.isDisabled) throw ApiError.unauthorized("This account is unavailable");
+  if (!user.emailVerifiedAt && payload.email!.trim().toLowerCase() === user.email) {
+    user.emailVerifiedAt = new Date();
+    user.set("emailVerification", undefined);
+    await user.save();
+  }
   await startSession(req, res, user._id.toString(), user.authVersion ?? 0);
 
   res.status(200).json({
@@ -105,7 +112,7 @@ export const googleAuth = asyncHandler(async (req: Request, res: Response) => {
 export const linkGoogle = asyncHandler(async (req: Request, res: Response) => {
   const user = await User.findById(req.user!.id).select("+password");
   if (!user?.password || typeof req.body.password !== "string" || !await bcrypt.compare(req.body.password, user.password)) {
-    throw ApiError.unauthorized("Confirm your current password to link Google");
+    throw ApiError.forbidden("Confirm your current password to link Google");
   }
   const payload = await verifiedGoogleIdentity(req.body.credential);
   if (payload.email!.toLowerCase() !== user.email || (user.googleId && user.googleId !== payload.sub)) {
@@ -114,6 +121,8 @@ export const linkGoogle = asyncHandler(async (req: Request, res: Response) => {
   const linked = await User.findOne({ googleId: payload.sub });
   if (linked && linked._id.toString() !== user._id.toString()) throw ApiError.conflict("Google identity is already linked");
   user.googleId = payload.sub;
+  user.emailVerifiedAt = new Date();
+  user.set("emailVerification", undefined);
   await user.save();
   res.json({ success: true, user: publicUser(user) });
 });
@@ -147,7 +156,7 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
     password: user.password,
     isDisabled: { $ne: true },
     $or: [{ authVersion: req.user!.authVersion }, ...(req.user!.authVersion === 0 ? [{ authVersion: { $exists: false } }] : [])],
-  }, { $set: { password }, $inc: { authVersion: 1 } }, { returnDocument: "after" });
+  }, { $set: { password }, $inc: { authVersion: 1 }, $unset: { passwordReset: 1 } }, { returnDocument: "after" });
   if (!updated) throw ApiError.conflict("Your account changed. Sign in again before retrying.");
 
   // The atomic version increment is the revocation boundary. Even a late

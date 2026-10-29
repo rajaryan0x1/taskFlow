@@ -34,7 +34,7 @@ export function AppShell() {
     <aside className="desktop-sidebar"><NavLink to="/" aria-label="TaskFlow home"><Brand /></NavLink>{navigation}</aside>
     <div className="app-workspace">
       <header className="topbar"><div className="topbar-location"><button className="icon-button mobile-menu" aria-label="Open navigation" onClick={() => setOpen(true)}><Icon name="menu" /></button><span className="text-slate-400">Your space</span><span className="text-slate-300">/</span><strong>{location.pathname === "/" ? "Overview" : location.pathname === "/account" ? "Account settings" : location.pathname === "/my-tasks" ? "My tasks" : "Projects"}</strong></div><div className="topbar-actions"><span className="today-label">{new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", weekday: "short" }).format(new Date())}</span><NotificationBell /><button className="avatar" aria-label="Account" onClick={() => navigate("/account")}>{user?.firstName[0]}{user?.lastName[0]}</button></div></header>
-      <div id="main-content" tabIndex={-1}><Outlet /></div>
+      <div id="main-content" tabIndex={-1}>{!user?.emailVerified && <p className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900">Verify your email before inviting teammates or joining a project. <NavLink to="/account" className="font-semibold underline">Manage verification</NavLink></p>}<Outlet /></div>
     </div>
     {open && <Modal title="Navigation" onClose={() => setOpen(false)}><div className="mobile-navigation"><div className="flex items-center justify-between"><Brand /><button className="icon-button" aria-label="Close navigation" onClick={() => setOpen(false)}><Icon name="close" /></button></div>{navigation}</div></Modal>}
   </div>;

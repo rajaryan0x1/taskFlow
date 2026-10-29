@@ -22,6 +22,16 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(5000),
   MONGO_URI: secret("MONGO_URI", "mongodb://127.0.0.1:27017/taskflow-dev").refine(value => /^mongodb(\+srv)?:\/\//.test(value), "Use a MongoDB connection URI"),
   SESSION_TTL_HOURS: z.coerce.number().int().min(1).max(336).default(168),
+  APP_ORIGIN: secret("APP_ORIGIN", "http://localhost:5173").refine(value => {
+    try { const url = new URL(value); return url.origin === value && (isProduction ? url.protocol === "https:" : ["http:", "https:"].includes(url.protocol)); }
+    catch { return false; }
+  }, "Use the exact frontend origin; production requires HTTPS"),
+  SMTP_HOST: secret("SMTP_HOST", "127.0.0.1"),
+  SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(isProduction ? 587 : 1025),
+  SMTP_SECURE: z.enum(["true", "false"]).default("false").transform(value => value === "true"),
+  SMTP_USER: z.string().default(""),
+  SMTP_PASSWORD: z.string().default(""),
+  MAIL_FROM: secret("MAIL_FROM", "noreply@taskflow.local").pipe(z.email()),
   GOOGLE_CLIENT_ID: z.preprocess(value => !isProduction && typeof value === "string" && !value.endsWith(".apps.googleusercontent.com") ? "" : value, z.string().regex(/^$|^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/, "Use a Google OAuth web client ID or leave blank").default("")),
   CORS_ORIGINS: secret("CORS_ORIGINS", "http://localhost:5173").refine(value => value.split(",").every(item => {
     try { const origin = new URL(item.trim()); return origin.origin === item.trim() && (isProduction ? origin.protocol === "https:" : ["http:", "https:"].includes(origin.protocol)); }

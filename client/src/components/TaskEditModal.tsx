@@ -321,7 +321,16 @@ const TaskEditModal = ({ task, projectId, projectMembers, onClose, currentUserRo
                                         ? `changed status from ${entry.meta.from} to ${entry.meta.to}`
                                         : entry.type === "assigned"
                                             ? entry.meta.assignee ? "assigned the task" : "unassigned the task"
-                                            : entry.type === "commented" ? "commented on the task" : "created the task"}
+                                            : ({
+                                                created: "created the task",
+                                                commented: "commented on the task",
+                                                updated: "updated the task",
+                                                priority_changed: "changed the priority",
+                                                due_date_changed: "changed the due date",
+                                                archived: "archived the task",
+                                                restored: "restored the task",
+                                                comment_deleted: "deleted a comment",
+                                            }[entry.type] ?? "recorded an activity")}
                                     <span className="ml-2 text-xs text-slate-500">
                                         {new Date(entry.createdAt).toLocaleString()}
                                     </span>

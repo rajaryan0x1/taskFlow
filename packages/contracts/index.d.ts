@@ -10,5 +10,5 @@ export interface ProjectEvent { projectId: string }
 export type ProjectRole = "owner" | "admin" | "member";
 export interface PublicUser {
   id: string; firstName: string; lastName: string; username: string; email: string;
-  appRole: "app_admin" | "user"; authProvider?: "local" | "google"; needsProfileCompletion?: boolean;
+  appRole: "app_admin" | "user"; authProvider?: "local" | "google"; needsProfileCompletion?: boolean; emailVerified?: boolean;
 }

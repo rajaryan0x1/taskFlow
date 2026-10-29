@@ -4,6 +4,7 @@ import zod from "zod";
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { validate } from "../middleware/validate.js";
 import { newPasswordSchema } from "../utils/password.js";
+import { forgotPassword, resetPassword, resendVerification, verifyEmail } from "../controllers/accountRecovery.controller.js";
 import {
   register,
   login,
@@ -17,7 +18,7 @@ import {
 } from "../controllers/auth.controller.js";
 
 const router = Router();
-const authLimiter = rateLimit({
+export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   standardHeaders: true,
@@ -47,6 +48,14 @@ const googleSchema = zod.object({
 });
 
 router.post("/google", authLimiter, validate(googleSchema), googleAuth);
+
+const recoveryLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false, message: { message: "Too many requests. Please try again later." } });
+const resendLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, keyGenerator: req => req.user!.id, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification requests. Please try again later." } });
+const tokenSchema = zod.string().regex(/^[a-f0-9]{64}$/, "Invalid or expired link. Request a new one.");
+router.post("/forgot-password", recoveryLimiter, validate(zod.object({ email: zod.string().trim().email().toLowerCase() }).strict()), forgotPassword);
+router.post("/reset-password", recoveryLimiter, validate(zod.object({ token: tokenSchema, password: newPasswordSchema }).strict()), resetPassword);
+router.post("/verify-email", recoveryLimiter, validate(zod.object({ token: tokenSchema }).strict()), verifyEmail);
+router.post("/verification-email", authMiddleware, resendLimiter, resendVerification);
 
 // Separate account-keyed budget so password confirmation attempts cannot use
 // multiple IPs to bypass the limit or consume another user's login allowance.

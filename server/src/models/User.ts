@@ -6,6 +6,9 @@ export interface IUser extends Document {
   lastName: string;
   username: string;
   email: string;
+  emailVerifiedAt?: Date;
+  emailVerification?: { digest: string; expiresAt: Date; issuedAt: Date };
+  passwordReset?: { digest: string; expiresAt: Date; issuedAt: Date };
   isDisabled: boolean;
   authVersion: number;
   needsProfileCompletion: boolean;
@@ -50,6 +53,9 @@ const UserSchema = new Schema<IUser>(
       trim: true,
     },
     needsProfileCompletion: { type: Boolean, default: false },
+    emailVerifiedAt: Date,
+    emailVerification: { type: new Schema({ digest: String, expiresAt: Date, issuedAt: Date }, { _id: false }), select: false },
+    passwordReset: { type: new Schema({ digest: String, expiresAt: Date, issuedAt: Date }, { _id: false }), select: false },
     isDisabled: { type: Boolean, default: false },
     authVersion: { type: Number, default: 0, min: 0 },
     password: {

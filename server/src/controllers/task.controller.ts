@@ -417,7 +417,8 @@ export const deleteTask = asyncHandler(
         const task = req.task!;
 
         if (hardDelete) {
-                        await Task.findByIdAndDelete(taskId);
+            const deleted = await Task.findOneAndDelete({ _id: taskId, __v: task.__v });
+            if (!deleted) throw ApiError.conflict("This task changed since you opened it. Close and reopen it before deleting.");
             await Comment.deleteMany({ task: taskId });
             await Activity.deleteMany({ task: taskId });
             if (req.app.locals.io) broadcastTaskDelete(req.app.locals.io, task.project.toString(), taskId);

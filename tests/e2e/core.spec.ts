@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
+import { verifyFixtureEmail } from './emailHelpers';
 
 test('register, reload, edit, archive, restore, and sign out', async ({ page }) => {
   const errors: string[] = [];
@@ -35,6 +36,7 @@ test('register, reload, edit, archive, restore, and sign out', async ({ page }) 
   await page.getByLabel('Show archived tasks').check();
   await card.click();
   await expect(page.getByLabel('Title', { exact: true })).toBeDisabled();
+  await expect(page.getByText('archived the task', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: 'Restore task', exact: true }).click();
   await page.getByLabel('Show archived tasks').uncheck();
   await expect(card).toBeVisible();
@@ -73,6 +75,7 @@ test('invite a colleague and change their role from the member panel', async ({ 
       data: { firstName: name, lastName: 'Tester', username: `e2e_${name}`, email: `${name}@example.com`, password: 'correct-horse-battery' },
     });
     expect(response.status()).toBe(201);
+    await verifyFixtureEmail(request, `${name}@example.com`);
   }
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill('manager@example.com');

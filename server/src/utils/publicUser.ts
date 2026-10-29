@@ -9,6 +9,7 @@ export function publicUser(user: IUser): PublicUser {
     lastName: user.lastName,
     username: user.username,
     email: user.email,
+    emailVerified: !!user.emailVerifiedAt,
     appRole: user.appRole,
     authProvider: user.authProvider,
     needsProfileCompletion: user.needsProfileCompletion ?? false,

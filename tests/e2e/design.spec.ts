@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 test('responsive workspace, personal tasks, and redesigned screens', async ({ page }, testInfo) => {
   const errors: string[] = [];

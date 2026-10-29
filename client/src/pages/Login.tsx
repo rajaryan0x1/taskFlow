@@ -121,6 +121,7 @@ const LoginPage = () => {
                     </button>
 
                     <GoogleSignIn mode="login" />
+                    <p className="text-center text-sm"><Link to="/forgot-password" className="text-indigo-700">Forgot password?</Link></p>
 
 
                     <div className="text-center text-sm text-slate-600">

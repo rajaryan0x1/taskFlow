@@ -1,3 +1,4 @@
+import { getErrorMessage } from "../utils/apiError";
 import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import api from "../api/axios";
@@ -244,7 +245,7 @@ const MembersPanel = ({ projectId, members, currentUserRole, readOnly = false }:
 
                     {inviteMutation.isError && (
                         <p className="mt-2 text-sm text-red-600">
-                            Failed to invite member. They may already be in the project.
+                            {getErrorMessage(inviteMutation.error, "Failed to invite member")}
                         </p>
                     )}
                     {inviteMutation.isSuccess && (

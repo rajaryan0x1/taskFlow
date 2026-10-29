@@ -203,10 +203,19 @@ export const inviteMember = asyncHandler(
       throw ApiError.forbidden("You cannot invite a member with an equal or higher role");
     }
 
+    const inviter = await User.findById(req.user!.id);
+    if (!inviter?.emailVerifiedAt) {
+      throw ApiError.forbidden("Verify your email before inviting teammates");
+    }
+
     // Check if user exists
     const userToInvite = await User.findById(userId);
     if (!userToInvite) {
       throw ApiError.notFound("User not found");
+    }
+
+    if (userToInvite.isDisabled || !userToInvite.emailVerifiedAt) {
+      throw ApiError.badRequest("This user must have an active account and verify their email before joining a project");
     }
 
     // Check if user is already a member

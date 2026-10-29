@@ -10,6 +10,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashBoardPage";
 import AccountPage from "./pages/AccountPage";
 import ProjectPage from "./pages/ProjectPage";
+import AccountLinkPage from "./pages/AccountLinkPage";
 
 // Protected Route Component
 const ProtectedRoute = () => {
@@ -45,6 +46,9 @@ function App() {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<AccountLinkPage key="forgot" mode="forgot" />} />
+      <Route path="/reset-password" element={<AccountLinkPage key="reset" mode="reset" />} />
+      <Route path="/verify-email" element={<AccountLinkPage key="verify" mode="verify" />} />
 
       {/* Protected routes */}
       <Route element={<ProtectedRoute />}><Route element={<AppShell />}>

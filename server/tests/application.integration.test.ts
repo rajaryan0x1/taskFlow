@@ -15,6 +15,7 @@ import { Session } from "../src/models/Session.js";
 import User from "../src/models/User.js";
 import { hashToken, cookieName } from "../src/services/session.js";
 import { events } from "@taskflow/contracts";
+vi.mock("../src/services/accountEmail.js", () => ({ queueAccountEmail: vi.fn() }));
 
 let mongo: MongoMemoryServer;
 let server: Server;
@@ -62,7 +63,10 @@ beforeAll(async () => {
     expect(result.body).not.toHaveProperty("token");
   }
 }, 180000);
-beforeEach(async () => { await Project.deleteMany({}); await Task.deleteMany({}); });
+beforeEach(async () => {
+  await Project.deleteMany({}); await Task.deleteMany({});
+  await User.updateMany({}, { $set: { emailVerifiedAt: new Date(), isDisabled: false } });
+});
 afterAll(async () => {
   sockets.forEach(socket => socket.disconnect());
   if (app.locals.io) await new Promise<void>(resolve => app.locals.io.close(resolve));
@@ -95,6 +99,50 @@ describe("HTTP and real-time project boundaries", () => {
     await invite(id, "member");
     await api("owner", "patch", `/projects/${id}/members/${users.member!.id}/role`).send({ role: "admin" }).expect(200);
     await api("outsider", "get", `/projects/${id}`).expect(403);
+  });
+  it("requires verified sender and recipient accounts for invitations", async () => {
+    const id = await createProject();
+    await User.updateOne({ _id: users.owner!.id }, { $unset: { emailVerifiedAt: 1 } });
+    const inviteMember = () => api("owner", "post", `/projects/${id}/members`).send({ userId: users.member!.id });
+    await inviteMember().expect(403);
+    await User.updateOne({ _id: users.owner!.id }, { $set: { emailVerifiedAt: new Date() } });
+    await User.updateOne({ _id: users.member!.id }, { $unset: { emailVerifiedAt: 1 } });
+    await inviteMember().expect(400);
+    expect((await Project.findById(id))!.members).toHaveLength(1);
+    await User.updateOne({ _id: users.member!.id }, { $set: { emailVerifiedAt: new Date(), isDisabled: true } });
+    await inviteMember().expect(400);
+    await User.updateOne({ _id: users.member!.id }, { $set: { isDisabled: false } });
+    await inviteMember().expect(200);
+    await api("member", "get", `/projects/${id}`).expect(200);
+  });
+  it("preserves the session after incorrect Google-link password confirmation", async () => {
+    await api("owner", "post", "/auth/google/link").send({ credential: "unused", password: "wrong-password" }).expect(403);
+    await api("owner", "get", "/auth/me").expect(200);
+  });
+  it("rejects a hard delete when a collaborator updates after the version check", async () => {
+    const id = await createProject();
+    const result = await api("owner", "post", `/projects/${id}/tasks`).send({ title: "Original task" }).expect(201);
+    const taskId = result.body.data._id;
+    const path = `/projects/${id}/tasks/${taskId}`;
+    await api("owner", "post", `${path}/comments`).send({ body: "Keep this comment" }).expect(201);
+    const originalDelete = Task.findOneAndDelete.bind(Task);
+    const deletion = vi.spyOn(Task, "findOneAndDelete").mockImplementationOnce(filter => {
+      const query = originalDelete(filter);
+      const execute = query.exec.bind(query);
+      query.exec = async () => {
+        await Task.updateOne({ _id: taskId }, { $set: { title: "Concurrent edit" }, $inc: { __v: 1 } });
+        return execute();
+      };
+      return query;
+    });
+    try {
+      await api("owner", "delete", `${path}?hard=true`).set("If-Match", '\"0\"').expect(409);
+    } finally { deletion.mockRestore(); }
+    expect((await api("owner", "get", path).expect(200)).body.data.title).toBe("Concurrent edit");
+    expect((await api("owner", "get", `${path}/comments`).expect(200)).body.data).toHaveLength(1);
+    expect((await api("owner", "get", `${path}/activity`).expect(200)).body.data).toHaveLength(2);
+    await api("owner", "delete", `${path}?hard=true`).set("If-Match", '\"1\"').expect(200);
+    await api("owner", "get", path).expect(404);
   });
   it("allows archived reads and rejects creation through both URLs", async () => {
     const id = await createProject();
